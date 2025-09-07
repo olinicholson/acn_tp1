@@ -3,14 +3,18 @@
 # Simulación Monte Carlo de varios aviones aproximándose y aterrizando
 
 # Simulación Monte Carlo mejorada con animación horizontal en tiempo real
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.cm as cm
 import random
 
-MN_TO_KM = 1.852
-KNOT_TO_KMH = 1.852
+def knots_to_nm_per_min(knots: float) -> float:
+	return knots / 60.0
+
+def eta_minutes(dist_nm: float, speed_knots: float) -> float:
+	return dist_nm / knots_to_nm_per_min(speed_knots)
 
 APPROACH_RANGES = [
 	(100, float('inf'), 300, 500),
@@ -53,8 +57,7 @@ class Plane:
 	def update_position(self, dt, speed=None):
 		if speed is None:
 			speed = self.speed
-		speed_mn_min = speed * KNOT_TO_KMH / 60 / MN_TO_KM
-		self.dist = max(0, self.dist - speed_mn_min * dt)
+		self.dist = max(0, self.dist - knots_to_nm_per_min(speed) * dt)
 		self.positions.append((self.positions[-1][0] + dt, self.dist))
 		if self.dist == 0 and self.status != 'landed':
 			self.status = 'landed'
@@ -63,8 +66,10 @@ class Plane:
 def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 	planes = []
 	queue = []
+	rejoining = []
 	next_id = 1
-	landing_times = []
+	random.seed(42)
+	np.random.seed(42)
 	for t in range(total_minutes):
 		# Aparición de nuevos aviones
 		if random.random() < lambda_prob:
@@ -72,100 +77,58 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 			# Chequeo de separación temporal con el anterior en la cola
 			if queue:
 				prev_plane = queue[-1]
-				# Si la diferencia de aparición es menor a 4 minutos
 				if (plane.appear_time - prev_plane.appear_time) < MIN_SEPARATION_MIN:
-					# El avión ajusta velocidad a 20 nudos menos que el de adelante
 					plane.speed = max(plane.get_min_speed(), prev_plane.speed - 20)
 			planes.append(plane)
 			queue.append(plane)
 			next_id += 1
-		# Actualización de posiciones y gestión de cola
 		# Procesar aviones en estado 'approaching'
 		for i, plane in enumerate(queue[:]):
 			if plane.status == 'approaching':
-				# Separación con el avión anterior
-				if i > 0:
-					prev = queue[i-1]
-					# Calcular tiempo estimado de aterrizaje del anterior en la cola
-					if prev.status == 'landed':
-						prev_time_to_land = prev.landed_time
-					else:
-						prev_time_to_land = t + prev.dist / (prev.speed * KNOT_TO_KMH / 60 / MN_TO_KM)
-					# Calcular tiempo estimado de aterrizaje del actual
-					curr_time_to_land = t + plane.dist / (plane.speed * KNOT_TO_KMH / 60 / MN_TO_KM)
-					# Si la separación estimada es menor a la mínima
-					if (curr_time_to_land - prev_time_to_land) < MIN_SEPARATION_MIN:
-						# El avión ajusta velocidad a 20 nudos menos que el de adelante
-						nueva_speed = max(plane.get_min_speed(), prev.speed - 20)
-						if nueva_speed < plane.get_min_speed():
-							# No puede mantener separación, sale de la fila y busca gap de 10 min
-							plane.status = 'rejoin'
-							plane.montevideo_time = None
-							plane.rejoin_start_time = t
-							plane.rejoin_dist = plane.dist
-							continue
-						else:
-							plane.speed = nueva_speed
-							# Mantiene velocidad reducida hasta lograr 5 min de separación
-							curr_time_to_land_nueva = t + plane.dist / (nueva_speed * KNOT_TO_KMH / 60 / MN_TO_KM)
-							if (curr_time_to_land_nueva - prev_time_to_land) < (MIN_SEPARATION_MIN + 1):
-								# Si ya está en velocidad mínima y sigue sin lograr separación, sale de la fila
-								if plane.speed == plane.get_min_speed():
+				to_remove = []
+				for i, plane in enumerate(queue[:]):
+					if plane.status == 'approaching':
+						if i > 0:
+							prev = queue[i-1]
+							prev_time_to_land = t + eta_minutes(prev.dist, prev.speed) if prev.status != 'landed' else prev.landed_time
+							curr_time_to_land = t + eta_minutes(plane.dist, plane.speed)
+							nueva_speed = max(plane.get_min_speed(), prev.speed - 20)
+							curr_time_to_land_nueva = t + eta_minutes(plane.dist, nueva_speed)
+							if (curr_time_to_land - prev_time_to_land) < MIN_SEPARATION_MIN:
+								if (curr_time_to_land_nueva - prev_time_to_land) < BUFFER_MIN:
+									# No logra buffer, va a rejoin
 									plane.status = 'rejoin'
-									plane.montevideo_time = None
 									plane.rejoin_start_time = t
 									plane.rejoin_dist = plane.dist
+									rejoining.append(plane)
+									to_remove.append(plane)
 									continue
-								# Sigue con velocidad reducida
-								pass
+								else:
+									plane.speed = nueva_speed
 							else:
-								# Logró buffer, vuelve a velocidad máxima
 								plane.speed = plane.get_max_speed()
-					else:
-						plane.speed = plane.get_max_speed()
-				else:
-					plane.speed = plane.get_max_speed()
-		# Procesar aviones en estado 'rejoin' aparte
-		for plane in queue[:]:
-			if plane.status == 'rejoin':
-				# Vuela hacia atrás a 200 nudos
-				plane.dist += 200 * KNOT_TO_KMH / 60 / MN_TO_KM
-				plane.positions.append((plane.positions[-1][0] + 1, plane.dist))
-				# Si sale de las 100mn, se va a Montevideo y se elimina de la cola
-				if plane.dist > 100.0:
-					plane.status = 'montevideo'
-					plane.montevideo_time = t
+						else:
+							# Primer avión, no tiene anterior
+							plane.speed = plane.get_max_speed()
+				# Remover aviones marcados fuera del bucle principal
+				for plane in to_remove:
 					if plane in queue:
 						queue.remove(plane)
-					continue
-				# Buscar gap de 10 minutos en la cola
-				gap_found = False
-				for j in range(len(queue)):
-					if j == 0:
-						continue
-					prev2 = queue[j-1]
-					curr2 = queue[j]
-					if prev2.status == 'landed':
-						prev2_time = prev2.landed_time
-					else:
-						prev2_time = t + prev2.dist / (prev2.speed * KNOT_TO_KMH / 60 / MN_TO_KM)
-					if curr2.status == 'landed':
-						curr2_time = curr2.landed_time
-					else:
-						curr2_time = t + curr2.dist / (curr2.speed * KNOT_TO_KMH / 60 / MN_TO_KM)
-					if (curr2_time - prev2_time) >= REJOIN_GAP_MIN:
-						# Puede reingresar
-						plane.status = 'approaching'
-						plane.dist = plane.rejoin_dist
-						plane.positions.append((plane.positions[-1][0], plane.dist))
-						gap_found = True
-						break
-		# Actualizar posición de los aviones en estado 'approaching'
-		for plane in queue:
+		to_remove_landed = []
+		for plane in queue[:]:
 			if plane.status == 'approaching':
 				plane.update_position(1)
 				if plane.status == 'landed':
-					landing_times.append(plane.landed_time)
+					to_remove_landed.append(plane)
+		for plane in to_remove_landed:
+			if plane in queue:
+				queue.remove(plane)
+		# Actualizar posición de los aviones en estado 'approaching'
+		for plane in queue[:]:
+			if plane.status == 'approaching':
+				plane.update_position(1)
+				if plane.status == 'landed':
+					queue.remove(plane)
 	return planes, total_minutes
 
 import matplotlib
@@ -226,14 +189,21 @@ def plot_landing_times_bar(planes):
 def print_summary(planes):
 	landed = [p for p in planes if p.status == 'landed']
 	montevideo = [p for p in planes if p.status == 'montevideo']
-	en_aproximacion = [p for p in planes if p.status == 'approaching']
+	en_aproximacion = [p for p in planes if p.status == 'approaching' and p.dist > 0]
 	print(f"Total de aviones simulados: {len(planes)}")
 	print(f"Aterrizados: {len(landed)}")
 	print(f"Se fueron a Montevideo: {len(montevideo)}")
-	print(f"En aproximación al final: {len(en_aproximacion)}")
+	print(f"En aproximación al final (en vuelo): {len(en_aproximacion)}")
 	if landed:
 		tiempos = [p.landed_time - p.appear_time for p in landed]
 		print(f"Tiempo promedio de aproximación y aterrizaje: {np.mean(tiempos):.2f} minutos")
+		# Métricas de atraso
+		def baseline_time_from_100nm():
+			t = 50/(300/60) + 35/(250/60) + 10/(200/60) + 5/(150/60)
+			return t
+		delays = [(p.landed_time - p.appear_time) - baseline_time_from_100nm() for p in landed]
+		print(f"Atraso promedio respecto al mínimo teórico: {np.mean(delays):.2f} minutos")
+		print(f"Desvío estándar del atraso: {np.std(delays):.2f} minutos")
 
 
 def minutos_a_hora(minuto):
@@ -244,7 +214,7 @@ def minutos_a_hora(minuto):
 if __name__ == "__main__":
 	# Simulación Monte Carlo completa: todos los aviones, aparición aleatoria, velocidad por rango, separación mínima
 	print("Simulación Monte Carlo de todos los aviones entre 6am y 12am:")
-	lambda_prob = 0.15
+	lambda_prob = 0.1
 	total_minutes = 1080
 	print(f"Lambda de aparición: {lambda_prob} aviones/minuto")
 	planes, _ = simulate_planes(lambda_prob, total_minutes)
