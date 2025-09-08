@@ -1,13 +1,5 @@
 
-
-# Simulación Monte Carlo de varios aviones aproximándose y aterrizando
-
-# Simulación Monte Carlo mejorada con animación horizontal en tiempo real
-
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import matplotlib.cm as cm
 import random
 
 def knots_to_nm_per_min(knots: float) -> float:
@@ -95,8 +87,9 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 							nueva_speed = max(plane.get_min_speed(), prev.speed - 20)
 							curr_time_to_land_nueva = t + eta_minutes(plane.dist, nueva_speed)
 							if (curr_time_to_land - prev_time_to_land) < MIN_SEPARATION_MIN:
-								if (curr_time_to_land_nueva - prev_time_to_land) < BUFFER_MIN:
-									# No logra buffer, va a rejoin
+								required_speed = prev.speed - 20
+								if required_speed < plane.get_min_speed() or (curr_time_to_land_nueva - prev_time_to_land) < BUFFER_MIN:
+									# Debe bajar por debajo del mínimo O no logra buffer, va a rejoin
 									plane.status = 'rejoin'
 									plane.rejoin_start_time = t
 									plane.rejoin_dist = plane.dist
@@ -114,6 +107,37 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 				for plane in to_remove:
 					if plane in queue:
 						queue.remove(plane)
+		
+		# Procesar aviones en rejoining (buscan gap o van a Montevideo)
+		for plane in rejoining[:]:
+			# Vuela hacia atrás a 200 nudos
+			plane.dist += knots_to_nm_per_min(200)
+			plane.positions.append((plane.positions[-1][0] + 1, plane.dist))
+			
+			# Si sale de las 100mn sin encontrar gap, se va a Montevideo
+			if plane.dist > 100.0:
+				plane.status = 'montevideo'
+				plane.montevideo_time = t
+				rejoining.remove(plane)
+				continue
+			
+			# Buscar gap de 10 minutos en la cola
+			gap_found = False
+			for j in range(1, len(queue)):
+				prev2 = queue[j-1]
+				curr2 = queue[j]
+				prev2_time = t + eta_minutes(prev2.dist, prev2.speed) if prev2.status != 'landed' else prev2.landed_time
+				curr2_time = t + eta_minutes(curr2.dist, curr2.speed) if curr2.status != 'landed' else curr2.landed_time
+				
+				if (curr2_time - prev2_time) >= REJOIN_GAP_MIN:
+					# Encontró gap, puede reingresar
+					plane.status = 'approaching'
+					plane.dist = plane.rejoin_dist
+					plane.positions.append((plane.positions[-1][0], plane.dist))
+					queue.insert(j, plane)
+					rejoining.remove(plane)
+					gap_found = True
+					break
 		to_remove_landed = []
 		for plane in queue[:]:
 			if plane.status == 'approaching':
@@ -131,93 +155,68 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 					queue.remove(plane)
 	return planes, total_minutes
 
-import matplotlib
-def animate_planes_real_time(planes, total_minutes):
-	fig, ax = plt.subplots(figsize=(14,8))
-	ax.set_xlim(100, 0)
-	ax.set_ylim(0, total_minutes)
-	ax.set_xlabel('Distancia a pista (mn)')
-	ax.set_ylabel('Minuto de simulación')
-	ax.set_title('Simulación Monte Carlo: Aproximación de aviones en tiempo real')
-
-	landed_planes = [p for p in planes if p.status == 'landed']
-	montevideo_planes = [p for p in planes if p.status == 'montevideo']
-	cmap = plt.get_cmap('tab20', max(1, len(landed_planes)))
-
-	scatters = []
-	for idx, plane in enumerate(landed_planes):
-		scatters.append(ax.scatter([], [], color=cmap(idx), s=40, label=f'Avión {plane.id}'))
-	for plane in montevideo_planes:
-		scatters.append(ax.scatter([], [], color='gray', s=40, label=f'Montevideo {plane.id}'))
-
-	import numpy as np
-	def update(frame):
-		for idx, plane in enumerate(landed_planes):
-			pos = [p for p in plane.positions if p[0] == frame]
-			if pos:
-				scatters[idx].set_offsets([[pos[0][1], frame]])
-			else:
-				scatters[idx].set_offsets(np.empty((0, 2)))
-		for j, plane in enumerate(montevideo_planes):
-			idx2 = len(landed_planes) + j
-			pos = [p for p in plane.positions if p[0] == frame]
-			if pos:
-				scatters[idx2].set_offsets([[pos[0][1], frame]])
-			else:
-				scatters[idx2].set_offsets(np.empty((0, 2)))
-		ax.set_title(f"Simulación Monte Carlo: Minuto {frame}")
-		return scatters
-
-	ani = animation.FuncAnimation(fig, update, frames=range(0, total_minutes, 10), interval=5, blit=True)
-	ax.legend(loc='upper right')
-	plt.tight_layout()
-	plt.show()
-
-def plot_landing_times_bar(planes):
-	# Solo aviones aterrizados
-	landed = [p for p in planes if p.status == 'landed']
-	horas = [(6 + int(p.landed_time // 60)) for p in landed]
-	plt.figure(figsize=(12,6))
-	plt.hist(horas, bins=range(6,25), color='skyblue', edgecolor='black', align='left')
-	plt.xlabel('Hora de aterrizaje')
-	plt.ylabel('Cantidad de aterrizajes')
-	plt.title('Distribución de aterrizajes por hora (6am a 12am)')
-	plt.xticks(range(6,25))
-	plt.tight_layout()
-	plt.show()
-
 def print_summary(planes):
+	"""
+	Imprime un resumen estadístico de la simulación.
+	
+	Args:
+		planes: Lista de objetos Plane de la simulación
+	"""
 	landed = [p for p in planes if p.status == 'landed']
 	montevideo = [p for p in planes if p.status == 'montevideo']
 	en_aproximacion = [p for p in planes if p.status == 'approaching' and p.dist > 0]
+	
 	print(f"Total de aviones simulados: {len(planes)}")
-	print(f"Aterrizados: {len(landed)}")
-	print(f"Se fueron a Montevideo: {len(montevideo)}")
+	print(f"Aterrizados: {len(landed)} ({len(landed)/len(planes)*100:.1f}%)")
+	print(f"Se fueron a Montevideo: {len(montevideo)} ({len(montevideo)/len(planes)*100:.1f}%)")
 	print(f"En aproximación al final (en vuelo): {len(en_aproximacion)}")
+	
 	if landed:
 		tiempos = [p.landed_time - p.appear_time for p in landed]
 		print(f"Tiempo promedio de aproximación y aterrizaje: {np.mean(tiempos):.2f} minutos")
+		
 		# Métricas de atraso
 		def baseline_time_from_100nm():
 			t = 50/(300/60) + 35/(250/60) + 10/(200/60) + 5/(150/60)
 			return t
+		
 		delays = [(p.landed_time - p.appear_time) - baseline_time_from_100nm() for p in landed]
 		print(f"Atraso promedio respecto al mínimo teórico: {np.mean(delays):.2f} minutos")
 		print(f"Desvío estándar del atraso: {np.std(delays):.2f} minutos")
 
-
 def minutos_a_hora(minuto):
+	"""
+	Convierte minutos de simulación a formato hora:minuto.
+	
+	Args:
+		minuto: Minuto de la simulación (0 = 6:00am)
+	
+	Returns:
+		str: Hora en formato "HH:MM"
+	"""
 	hora = 6 + minuto // 60
 	minutos = minuto % 60
 	return f"{hora:02d}:{minutos:02d}"
 
 if __name__ == "__main__":
-	# Simulación Monte Carlo completa: todos los aviones, aparición aleatoria, velocidad por rango, separación mínima
-	print("Simulación Monte Carlo de todos los aviones entre 6am y 12am:")
-	lambda_prob = 0.1
+	# Simulación Monte Carlo básica - solo estadísticas
+	print("Simulación Monte Carlo de aproximación de aeronaves")
+	print("=" * 60)
+	
+	lambda_prob = 0.15
 	total_minutes = 1080
-	print(f"Lambda de aparición: {lambda_prob} aviones/minuto")
+	
+	print(f"Parámetros de simulación:")
+	print(f"  Lambda de aparición: {lambda_prob} aviones/minuto")
+	print(f"  Duración: {total_minutes} minutos ({total_minutes/60:.1f} horas)")
+	print(f"  Horario: 6:00am a {minutos_a_hora(total_minutes)}")
+	print()
+	
+	# Ejecutar simulación
 	planes, _ = simulate_planes(lambda_prob, total_minutes)
-	#animate_planes_real_time(planes, total_minutes)
-	plot_landing_times_bar(planes)
+	
+	# Mostrar resumen
 	print_summary(planes)
+	print()
+	print("Para visualizaciones detalladas, ejecute:")
+	print("  python visualizations.py")
