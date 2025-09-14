@@ -1,4 +1,4 @@
-# Trabajo Práctico 1 - Análisis de Congestión Aérea (ACN)
+# Trabajo Práctico 1 - Aplicaciones Computacionalesen Negocio (ACN)
 ## Simulación del proceso de operación entre 6am y medianoche en AEP
 
 ### **Descripción del Problema**
@@ -288,11 +288,6 @@ pip install pygame numpy matplotlib tqdm
 
 ## **Información del Proyecto**
 
-- **Curso:** Análisis de Congestión (ACN)
-- **Año:** 2025
-- **Implementación:** Python 3.11+
-- **Librerías:** pygame, numpy, matplotlib, tqdm
-
 ### Función Principal `simulate_planes()`
 - **Aparición de aeronaves**: Proceso estocástico con probabilidad λ
 - **Gestión de cola**: Mantenimiento de secuencia ordenada
@@ -379,24 +374,6 @@ pip install numpy matplotlib
 
 ## Interpretación de Resultados
 
-### Salida de Ejemplo
-```
-Simulación Monte Carlo de todos los aviones entre 6am y 12am:
-Lambda de aparición: 0.15 aviones/minuto
-Total de aviones simulados: 162
-Aterrizados: 145
-Se fueron a Montevideo: 12
-En aproximación al final (en vuelo): 5
-Tiempo promedio de aproximación y aterrizaje: 45.23 minutos
-Atraso promedio respecto al mínimo teórico: 25.67 minutos
-Desvío estándar del atraso: 18.45 minutos
-```
-
-### Análisis
-- **Eficiencia del sistema**: 89.5% de aterrizajes exitosos
-- **Impacto de congestión**: 25.67 min de atraso promedio
-- **Variabilidad**: Desviación estándar indica dispersión en tiempos
-
 ## Casos de Estudio
 
 ### Baja Congestión (λ = 0.10)
@@ -409,26 +386,6 @@ Desvío estándar del atraso: 18.45 minutos
 - Mayor variabilidad en tiempos
 - Activación frecuente del sistema de rejoin
 
-## Extensiones Posibles
-
-1. **Múltiples pistas**: Modelado de operaciones paralelas
-2. **Condiciones meteorológicas**: Impacto en velocidades y separación
-3. **Diferentes tipos de aeronaves**: Características específicas por tipo
-4. **Optimización de secuencias**: Algoritmos de reordenamiento
-5. **Análisis de capacidad**: Determinación de límites del sistema
-
-## Validación del Modelo
-
-El modelo ha sido validado para:
-- Respeto de separaciones mínimas
-- Adherencia a rangos de velocidad
-- Comportamiento correcto del sistema de rejoin
-- Conservación del número de aeronaves
-- Realismo operacional
-
-## Autor
-
-Desarrollado como parte del Trabajo Práctico 1 - ACN 2025
 
 ## Archivos del Proyecto
 
@@ -438,53 +395,31 @@ Desarrollado como parte del Trabajo Práctico 1 - ACN 2025
 - **`README.md`**: Documentación completa del proyecto
 - **`Trabajo práctico 1 ACN 2025.pdf`**: Especificaciones originales
 
-## Uso de los Archivos
+---
 
-### Ejecución Básica (solo estadísticas)
-```bash
-python main.py
-```
+## **Conclusión Final**
 
-### Análisis Visual Completo
-```bash
-python visualizations.py
-```
+A través de simulaciones Monte Carlo exhaustivas, hemos cuantificado cómo pequeños cambios en la demanda de tráfico (λ) pueden generar efectos desproporcionados en la congestión del sistema.
 
-### Launcher Interactivo (Recomendado)
-```bash
-python run_analysis.py
-```
+Los resultados revelan tres hallazgos críticos:
 
-El launcher ofrece un menú interactivo con opciones para:
-- Análisis completo con todos los gráficos
-- Análisis con animación en tiempo real
-- Análisis comparativo de múltiples valores λ
-- Configuración personalizada de parámetros
-- Gráficos individuales específicos
-- Simulación rápida solo con estadísticas
-- `animate_planes_real_time`: Visualiza la aproximación de todos los aviones en tiempo real, mostrando su posición minuto a minuto.
-- `plot_landing_times_bar`: Muestra un gráfico de barras con la cantidad de aterrizajes por hora.
-- `print_summary`: Imprime un resumen con el total de aviones simulados, aterrizados, Montevideo y los que quedan en aproximación al final.
+1. **Umbral de colapso**: Existe un punto crítico en λ ≈ 0.2 donde el sistema transiciona abruptamente de operación estable a congestión severa, evidenciando comportamiento no lineal típico de sistemas complejos.
 
-## Resultados y visualización
+2. **Vulnerabilidad operacional**: Interrupciones menores (10% en días ventosos) pueden incrementar los desvíos en un 25-30%, mientras que cierres temporales de apenas 30 minutos pueden triplicar la tasa de desvíos, demostrando la fragilidad del sistema ante disrupciones.
 
-- El gráfico animado muestra la aproximación de cada avión, con colores distintos y los que se van a Montevideo en gris.
-- El gráfico de barras muestra la distribución de aterrizajes por hora.
-- El resumen final indica cuántos aviones aterrizaron, cuántos se fueron a Montevideo y cuántos quedaron en aproximación al finalizar la simulación.
+3. **Propagación temporal**: Los efectos de congestión no se limitan al período de perturbación, sino que se propagan y persisten, creando un efecto cascada que amplifica el impacto inicial.
 
-## Parámetros principales
-- `lambda_prob`: Probabilidad de aparición de un avión por minuto (ajustar para calibrar la demanda).
-- `total_minutes`: Duración de la simulación (por defecto, 1080 minutos = 18 horas).
 
-## Ejecución
-Instala las dependencias con:
-```bash
-pip install -r requirements.txt
-```
-Ejecuta la simulación con:
-```bash
-python main.py
-```
+---
 
-## Personalización
-Puedes modificar los parámetros, los rangos de velocidad, o agregar nuevas reglas en el archivo `main.py` para explorar diferentes escenarios de congestión y operación.
+## **Autores**
+
+**Grupo de Trabajo:**
+- **Olivia Nicholson**
+- **Sofia Ferrari** 
+- **Milena Fuchs**
+- **Guillermina Bacigalupo**
+
+*Trabajo Práctico 1 - Aplicaciones computacionales en negocios (ACN)*  
+*Universidad Torcuato Di Tella- Año 2025*
+
