@@ -1,15 +1,7 @@
 # Trabajo Práctico 1 - Análisis de Congestión Aérea (ACN)
 ## Simulación del proceso de operación entre 6am y medianoche en AEP
 
-### �️ **Instalación de Dependencias**
-
-Instalar las librerías necesarias:
-```bash
-pip install -r requirements.txt
-```
-
-### �📋 **Descripción del Problema**
-
+### **Descripción del Problema**
 Simulación de tráfico aéreo en el Aeropuerto Jorge Newbery Airfield (AEP) considerando:
 - Aparición de aviones con probabilidad λ por minuto
 - Rangos de velocidad según distancia al aeropuerto
@@ -19,11 +11,11 @@ Simulación de tráfico aéreo en el Aeropuerto Jorge Newbery Airfield (AEP) con
 
 ---
 
-## 🔍 **Respuestas a las Preguntas**
+## **Respuestas a las Preguntas**
 
 ### **1) Implementación de Simulación Monte Carlo y Visualización**
 
-**📁 Archivos:** `main.py`, `simulador.py`
+**Archivos:** `main.py`, `simulador.py`
 
 - **Simulación:** Implementada en `main.py` con clase `Plane` y función `simulate_planes()`
 - **Visualización:** `simulador.py` con pygame, muestra aviones en tiempo real con imágenes del Boeing 737
@@ -33,13 +25,13 @@ Simulación de tráfico aéreo en el Aeropuerto Jorge Newbery Airfield (AEP) con
   - Rangos de velocidad dinámicos según distancia
   - Mecanismo de separación y rejoin implementado
 
-**🎮 Ejecutar:** `python simulador.py`
+**Ejecutar:** `python simulador.py`
 
 ---
 
 ### **2) Cálculo de λ para 1 avión por hora**
 
-**📁 Archivo:** `aviones_hora.py` (líneas 47-49)
+**Archivo:** `aviones_hora.py` (líneas 47-49)
 
 Si el promedio de arribos es de **1 avión por hora**:
 - 1 avión/hora = 1 avión/60 minutos
@@ -54,7 +46,7 @@ lambda_prob = 1 / 60  # ≈ 0.0167
 
 ### **3) Probabilidad de 5 aviones en una hora**
 
-**📁 Archivo:** `aviones_hora.py` (función `cinco_aviones_1hora`)
+**Archivo:** `aviones_hora.py` (función `cinco_aviones_1hora`)
 
 Con λ = 1/60, usando **distribución de Poisson**:
 - **Teórico:** P(X=5) = e^(-1) × 1^5 / 5! ≈ **0.0037** (0.37%)
@@ -78,13 +70,13 @@ def cinco_aviones_1hora(lambda_prob, total_minutes):
     # Retorna probabilidad estimada
 ```
 
-**🎮 Ejecutar:** `python aviones_hora.py`
+**Ejecutar:** `python aviones_hora.py`
 
 ---
 
 ### **4) Análisis de Congestión por λ**
 
-**📁 Archivo:** `simulacion_arrivos_simple.py`
+**Archivo:** `simulacion_arrivos_simple.py`
 
 **Ejecutar:** `python simulacion_arrivos_simple.py`
 
@@ -98,7 +90,7 @@ def cinco_aviones_1hora(lambda_prob, total_minutes):
 | 0.5 | 68.2 ± 2.8 | 47.3 ± 4.5 | 78.9 ± 4.1 |
 | 1.0 | 89.4 ± 3.2 | 76.8 ± 6.2 | 92.1 ± 2.9 |
 
-**📈 Gráficos:** Generados automáticamente con matplotlib mostrando la relación exponencial entre λ y congestión.
+**Gráficos:** Generados automáticamente con matplotlib mostrando la relación exponencial entre λ y congestión.
 
 **Justificación del análisis:**
 - **Función `arrivos_congest()`:** Ejecuta simulaciones Monte Carlo para cada λ
@@ -107,9 +99,9 @@ def cinco_aviones_1hora(lambda_prob, total_minutes):
 - **Errores de estimación:** Calculados con desviación estándar sobre múltiples ejecuciones
 
 **Conclusiones:**
-- ✅ **Incremento exponencial:** λ más alto → más congestión
-- ✅ **Umbral crítico:** λ > 0.2 genera congestión severa
-- ✅ **Desvíos frecuentes:** λ > 0.5 resulta en más del 68% de desvíos
+- **Incremento exponencial:** λ más alto → más congestión
+- **Umbral crítico:** λ > 0.2 genera congestión severa
+- **Desvíos frecuentes:** λ > 0.5 resulta en más del 68% de desvíos
 
 ---
 
@@ -125,13 +117,13 @@ def cinco_aviones_1hora(lambda_prob, total_minutes):
 
 | λ | Normal (%) | Ventoso (%) | **Incremento** |
 |---|------------|-------------|----------------|
-| 0.1 | 10.7 | 32.7 | **+22.0%** ⬆️ |
-| 0.15 | 12.3 | 41.0 | **+28.7%** ⬆️ |
-| 0.2 | 20.5 | 48.3 | **+27.8%** ⬆️ |
-| 0.25 | 26.0 | 54.6 | **+28.6%** ⬆️ |
-| 0.3 | 31.2 | 60.2 | **+29.0%** ⬆️ |
+| 0.1 | 10.7 | 32.7 | **+22.0%** |
+| 0.15 | 12.3 | 41.0 | **+28.7%** |
+| 0.2 | 20.5 | 48.3 | **+27.8%** |
+| 0.25 | 26.0 | 54.6 | **+28.6%** |
+| 0.3 | 31.2 | 60.2 | **+29.0%** |
 
-**🌪️ Características del día ventoso:**
+**Características del día ventoso:**
 - **Clase `PlaneVentoso`:** Hereda de `Plane` + método `intentar_aterrizaje()` (10% falla)
 - **Lógica de rejoin:** Usa exactamente la misma lógica de `main.py` + interrupciones
 - **Visualización:** `simulador_ventoso.py` con círculos amarillos para aviones interrumpidos
@@ -143,13 +135,13 @@ def cinco_aviones_1hora(lambda_prob, total_minutes):
 - **Simulación realista:** Aviones interrumpidos deben buscar nuevo gap como rejoin normal
 - **Función `simulate_realtime()`:** Generador simple para alimentar visualización en tiempo real
 
-**📊 Gráfico de comparación:** Líneas azul (normal) vs roja (ventoso) con incrementos claramente visibles
+**Gráfico de comparación:** Líneas azul (normal) vs roja (ventoso) con incrementos claramente visibles
 
 ---
 
 ### **6) Cierre por Tormenta (30 minutos)**
 
-**📁 Archivo:** `tormenta.py`
+**Archivo:** `tormenta.py`
 
 **Ejecutar:** `python tormenta.py`
 
@@ -157,11 +149,11 @@ def cinco_aviones_1hora(lambda_prob, total_minutes):
 
 | λ | Normal (%) | Tormenta (%) | **Incremento** |
 |---|------------|--------------|----------------|
-| 0.1 | 10.7 | 32.7 | **+22.0%** ⬆️ |
-| 0.15 | 12.3 | 41.0 | **+28.7%** ⬆️ |
-| 0.2 | 20.5 | 48.3 | **+27.8%** ⬆️ |
-| 0.25 | 26.0 | 54.6 | **+28.6%** ⬆️ |
-| 0.3 | 31.2 | 60.2 | **+29.0%** ⬆️ |
+| 0.1 | 10.7 | 32.7 | **+22.0%** |
+| 0.15 | 12.3 | 41.0 | **+28.7%** |
+| 0.2 | 20.5 | 48.3 | **+27.8%** |
+| 0.25 | 26.0 | 54.6 | **+28.6%** |
+| 0.3 | 31.2 | 60.2 | **+29.0%** |
 
 #### Análisis por Momento del Día:
 
@@ -173,7 +165,7 @@ def cinco_aviones_1hora(lambda_prob, total_minutes):
 | 18:00 (Noche) | 52.2 | 211 | 12 |
 | 21:00 (Madrugada) | 55.3 | 159 | 7 |
 
-**⚠️ Consecuencias críticas:**
+**Consecuencias críticas:**
 - **Duplicación/triplicación** de desvíos en solo 30 minutos
 - **Congestión severa:** Hasta 14 aviones esperando simultáneamente
 - **Efecto persistente:** Impacto continúa después de reapertura del aeropuerto
@@ -193,7 +185,7 @@ def cinco_aviones_1hora(lambda_prob, total_minutes):
 
 ---
 
-## 📁 **Estructura de Archivos**
+## **Estructura de Archivos**
 
 ```
 tp1/acn_tp1/
@@ -212,7 +204,7 @@ tp1/acn_tp1/
 
 ---
 
-## 🚀 **Cómo Ejecutar**
+## **Cómo Ejecutar**
 
 ### Requisitos:
 ```bash
@@ -241,7 +233,7 @@ pip install pygame numpy matplotlib tqdm
 
 ---
 
-## 📊 **Metodología y Justificación**
+## **Metodología y Justificación**
 
 ### **Separación por Archivos - Justificación:**
 
@@ -271,7 +263,7 @@ pip install pygame numpy matplotlib tqdm
 
 ---
 
-## 🔬 **Conclusiones Principales**
+## **Conclusiones Principales**
 
 1. **Umbral crítico:** λ > 0.2 genera congestión exponencial
 2. **Vulnerabilidad:** Interrupciones del 10% incrementan desvíos +25-30%
@@ -281,7 +273,7 @@ pip install pygame numpy matplotlib tqdm
 
 **El sistema de tráfico aéreo es extremadamente sensible a disrupciones, con efectos no lineales que pueden colapsar la operación normal.**
 
-### **🎯 Mapeo Final Pregunta → Archivo:**
+### **Mapeo Final Pregunta → Archivo:**
 
 | Pregunta | Archivo Principal | Función/Clase Clave | Justificación |
 |----------|------------------|-------------------|---------------|
@@ -294,7 +286,7 @@ pip install pygame numpy matplotlib tqdm
 
 ---
 
-## 👥 **Información del Proyecto**
+## **Información del Proyecto**
 
 - **Curso:** Análisis de Congestión (ACN)
 - **Año:** 2025
@@ -428,11 +420,11 @@ Desvío estándar del atraso: 18.45 minutos
 ## Validación del Modelo
 
 El modelo ha sido validado para:
-- ✅ Respeto de separaciones mínimas
-- ✅ Adherencia a rangos de velocidad
-- ✅ Comportamiento correcto del sistema de rejoin
-- ✅ Conservación del número de aeronaves
-- ✅ Realismo operacional
+- Respeto de separaciones mínimas
+- Adherencia a rangos de velocidad
+- Comportamiento correcto del sistema de rejoin
+- Conservación del número de aeronaves
+- Realismo operacional
 
 ## Autor
 
@@ -464,12 +456,12 @@ python run_analysis.py
 ```
 
 El launcher ofrece un menú interactivo con opciones para:
-- 📊 Análisis completo con todos los gráficos
-- 🎬 Análisis con animación en tiempo real
-- 📈 Análisis comparativo de múltiples valores λ
-- 🔧 Configuración personalizada de parámetros
-- 📋 Gráficos individuales específicos
-- ⚡ Simulación rápida solo con estadísticas
+- Análisis completo con todos los gráficos
+- Análisis con animación en tiempo real
+- Análisis comparativo de múltiples valores λ
+- Configuración personalizada de parámetros
+- Gráficos individuales específicos
+- Simulación rápida solo con estadísticas
 - `animate_planes_real_time`: Visualiza la aproximación de todos los aviones en tiempo real, mostrando su posición minuto a minuto.
 - `plot_landing_times_bar`: Muestra un gráfico de barras con la cantidad de aterrizajes por hora.
 - `print_summary`: Imprime un resumen con el total de aviones simulados, aterrizados, Montevideo y los que quedan en aproximación al final.
