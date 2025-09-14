@@ -9,59 +9,6 @@ import matplotlib.animation as animation
 import matplotlib.cm as cm
 from main import simulate_planes, knots_to_nm_per_min, eta_minutes
 
-def animate_planes_real_time(planes, total_minutes):
-    """
-    Crea una animación en tiempo real de la simulación de aeronaves.
-    
-    Args:
-        planes: Lista de objetos Plane de la simulación
-        total_minutes: Duración total de la simulación en minutos
-    """
-    fig, ax = plt.subplots(figsize=(14, 8))
-    ax.set_xlim(100, 0)
-    ax.set_ylim(0, total_minutes)
-    ax.set_xlabel('Distancia a pista (mn)', fontsize=12)
-    ax.set_ylabel('Minuto de simulación', fontsize=12)
-    ax.set_title('Simulación Monte Carlo: Aproximación de aeronaves en tiempo real', fontsize=14)
-    
-    # Agregar líneas de referencia
-    ax.axvline(x=50, color='gray', linestyle='--', alpha=0.5, label='50mn')
-    ax.axvline(x=15, color='gray', linestyle='--', alpha=0.5, label='15mn')
-    ax.axvline(x=5, color='gray', linestyle='--', alpha=0.5, label='5mn')
-
-    landed_planes = [p for p in planes if p.status == 'landed']
-    montevideo_planes = [p for p in planes if p.status == 'montevideo']
-    cmap = plt.get_cmap('tab20', max(1, len(landed_planes)))
-
-    scatters = []
-    for idx, plane in enumerate(landed_planes):
-        scatters.append(ax.scatter([], [], color=cmap(idx), s=40, label=f'Avión {plane.id}'))
-    for plane in montevideo_planes:
-        scatters.append(ax.scatter([], [], color='red', s=40, marker='x', label=f'Montevideo {plane.id}'))
-
-    def update(frame):
-        for idx, plane in enumerate(landed_planes):
-            pos = [p for p in plane.positions if p[0] == frame]
-            if pos:
-                scatters[idx].set_offsets([[pos[0][1], frame]])
-            else:
-                scatters[idx].set_offsets(np.empty((0, 2)))
-        for j, plane in enumerate(montevideo_planes):
-            idx2 = len(landed_planes) + j
-            pos = [p for p in plane.positions if p[0] == frame]
-            if pos:
-                scatters[idx2].set_offsets([[pos[0][1], frame]])
-            else:
-                scatters[idx2].set_offsets(np.empty((0, 2)))
-        ax.set_title(f"Simulación Monte Carlo: Minuto {frame}")
-        return scatters
-
-    ani = animation.FuncAnimation(fig, update, frames=range(0, total_minutes, 10), 
-                                interval=100, blit=True, repeat=True)
-    ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
-    plt.tight_layout()
-    plt.show()
-    return ani
 
 def plot_landing_times_bar(planes):
     """
@@ -70,12 +17,14 @@ def plot_landing_times_bar(planes):
     Args:
         planes: Lista de objetos Plane de la simulación
     """
-    landed = [p for p in planes if p.status == 'landed']
+    landed = [p for p in planes if p.status == 'landed' and p.landed_time is not None]
     if not landed:
         print("No hay aviones aterrizados para graficar")
         return
     
-    horas = [(6 + int(p.landed_time // 60)) for p in landed]
+    # Convertir minutos de simulación a horas del día
+    # minuto 0 = 6:00am, minuto 60 = 7:00am, etc.
+    horas = [6 + (p.landed_time // 60) for p in landed]
     
     plt.figure(figsize=(12, 6))
     n, bins, patches = plt.hist(horas, bins=range(6, 25), color='skyblue', 
@@ -153,7 +102,7 @@ def plot_delay_analysis(planes):
     Args:
         planes: Lista de objetos Plane de la simulación
     """
-    landed = [p for p in planes if p.status == 'landed']
+    landed = [p for p in planes if p.status == 'landed' and p.landed_time is not None]
     if not landed:
         print("No hay aviones aterrizados para analizar atrasos")
         return
@@ -215,7 +164,7 @@ def plot_system_efficiency(planes):
     ax1.set_title('Distribución de resultados de vuelos', fontsize=14)
     
     # Eficiencia por hora
-    landed_planes = [p for p in planes if p.status == 'landed']
+    landed_planes = [p for p in planes if p.status == 'landed' and p.landed_time is not None]
     if landed_planes:
         hours = range(6, 24)
         landings_per_hour = []

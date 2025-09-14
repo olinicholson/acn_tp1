@@ -1,6 +1,7 @@
 
 import numpy as np
 import random
+from tqdm import tqdm
 
 def knots_to_nm_per_min(knots: float) -> float:
 	return knots / 60.0
@@ -62,7 +63,9 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 	next_id = 1
 	random.seed(42)
 	np.random.seed(42)
-	for t in range(total_minutes):
+	
+	# Usar tqdm para mostrar progreso de la simulación
+	for t in tqdm(range(total_minutes), desc="⏱️  Simulando", unit="min", disable=(total_minutes < 100)):
 		# Aparición de nuevos aviones
 		if random.random() < lambda_prob:
 			plane = Plane(next_id, t)
