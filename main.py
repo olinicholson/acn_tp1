@@ -3,12 +3,15 @@ import numpy as np
 import random
 from tqdm import tqdm
 
+# funcion que convierte una velocidad en nudos a una  velocidad en millas náuticas por minuto. 
 def knots_to_nm_per_min(knots: float) -> float:
 	return knots / 60.0
 
+# funcion que calcula el tiempo estimado de llegada en minutos, dado una distancia en millas náuticas y una velocidad en nudos.
 def eta_minutes(dist_nm: float, speed_knots: float) -> float:
 	return dist_nm / knots_to_nm_per_min(speed_knots)
 
+# rangos de la velocidad maxima permitida de acuerdo a la distancia a AEP
 APPROACH_RANGES = [
 	(100, float('inf'), 300, 500),
 	(50, 100, 250, 300),
@@ -16,15 +19,26 @@ APPROACH_RANGES = [
 	(5, 15, 150, 200),
 	(0, 5, 120, 150)
 ]
-MIN_SEPARATION_MIN = 4
-BUFFER_MIN = 5
-REJOIN_GAP_MIN = 10
+MIN_SEPARATION_MIN = 4 # tiempo minimo de separacion
+BUFFER_MIN = 5 # buffer minimo de seguridad 
+REJOIN_GAP_MIN = 10 # tiempo minimo de gap para reingresar
 
+# clase Plane que representa un avion en la simulacion con : 
+# - id: identificador unico del avion
+# - appear_time: minuto de aparicion del avion en la simulacion
+# - dist: distancia del avion a AEP en mn
+# - status: estado del avion ('approaching', 'montevideo', 'landed', 'rejoin'), approaching por default
+# - speed: velocidad actual del avion en nudos, maxima permtitida por default 
+# - positions: lista de tuplas (tiempo, distancia) que registra la posicion del avion a lo largo del tiempo
+# - waiting: booleano que indica si el avion esta esperando para reingresar
+# - wait_time: tiempo total que el avion ha estado esperando para reingresar
+# - landed_time: minuto en que el avion aterrizo (si es que aterrizo)
+# - montevideo_time: minuto en que el avion se fue a Montevideo (si se tuvo que ir a Montevideo)
 class Plane:
 	def __init__(self, id, appear_time):
 		self.id = id
-		self.appear_time = appear_time
-		self.dist = 100.0  # mn
+		self.appear_time = appear_time 
+		self.dist = 100.0  
 		self.status = 'approaching'  # 'approaching', 'montevideo', 'landed'
 		self.speed = self.get_max_speed()
 		self.positions = [(appear_time, self.dist)]
@@ -33,20 +47,24 @@ class Plane:
 		self.landed_time = None
 		self.montevideo_time = None
 
+	# determina el rango de velocidad segun la distancia actual del avion a AEP
 	def get_range(self):
 		for r_min, r_max, v_min, v_max in APPROACH_RANGES:
 			if r_min < self.dist <= r_max:
 				return v_min, v_max
 		return 120, 150
 
+	# velocidad maxima del avion
 	def get_max_speed(self):
 		v_min, v_max = self.get_range()
 		return v_max
-
+	
+	# velocidad minima del avion
 	def get_min_speed(self):
 		v_min, v_max = self.get_range()
 		return v_min
 
+	# actualiza la posicion del avion segun el tiempo transcurrido dt y la velocidad (si no se pasa, usa la velocidad actual)
 	def update_position(self, dt, speed=None):
 		if speed is None:
 			speed = self.speed
@@ -56,6 +74,7 @@ class Plane:
 			self.status = 'landed'
 			self.landed_time = self.positions[-1][0]
 
+# funcion que simula la llegada y aproximacion de aviones a AEP
 def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 	planes = []
 	queue = []
@@ -158,6 +177,7 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 					queue.remove(plane)
 	return planes, total_minutes
 
+# funcion que imprime un resumen estadistico de la simulacion
 def print_summary(planes):
 	"""
 	Imprime un resumen estadístico de la simulación.
@@ -187,6 +207,7 @@ def print_summary(planes):
 		print(f"Atraso promedio respecto al mínimo teórico: {np.mean(delays):.2f} minutos")
 		print(f"Desvío estándar del atraso: {np.std(delays):.2f} minutos")
 
+# funcion que convierte minutos de simulacion a formato hora:minuto
 def minutos_a_hora(minuto):
 	"""
 	Convierte minutos de simulación a formato hora:minuto.
