@@ -91,8 +91,8 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 			# Chequeo de separación temporal con el anterior en la cola
 			if queue:
 				prev_plane = queue[-1]
-				if (plane.appear_time - prev_plane.appear_time) < MIN_SEPARATION_MIN:
-					plane.speed = max(plane.get_min_speed(), prev_plane.speed - 20)
+				if (plane.appear_time - prev_plane.appear_time) < MIN_SEPARATION_MIN:  #si el tiempo entre aviones es menor al minimo de separacion
+					plane.speed = max(plane.get_min_speed(), prev_plane.speed - 20) #ajusta la velocidad a 20 nudos menos
 			planes.append(plane)
 			queue.append(plane)
 			next_id += 1
@@ -104,7 +104,7 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 					if plane.status == 'approaching':
 						if i > 0:
 							prev = queue[i-1]
-							prev_time_to_land = t + eta_minutes(prev.dist, prev.speed) if prev.status != 'landed' else prev.landed_time
+							prev_time_to_land = t + eta_minutes(prev.dist, prev.speed) if prev.status != 'landed' else prev.landed_time 
 							curr_time_to_land = t + eta_minutes(plane.dist, plane.speed)
 							nueva_speed = max(plane.get_min_speed(), prev.speed - 20)
 							curr_time_to_land_nueva = t + eta_minutes(plane.dist, nueva_speed)
@@ -137,7 +137,7 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 			plane.positions.append((plane.positions[-1][0] + 1, plane.dist))
 			
 			# Si sale de las 100mn sin encontrar gap, se va a Montevideo
-			if plane.dist > 100.0:
+			if plane.dist > 100:
 				plane.status = 'montevideo'
 				plane.montevideo_time = t
 				rejoining.remove(plane)
@@ -162,19 +162,14 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 					break
 		to_remove_landed = []
 		for plane in queue[:]:
+			# Actualizar posición de los aviones en estado 'approaching'
 			if plane.status == 'approaching':
-				plane.update_position(1)
+				plane.update_position(1) # actualiza la posicion con dt=1 minuto
 				if plane.status == 'landed':
-					to_remove_landed.append(plane)
+					to_remove_landed.append(plane) # se marca como aterrizado y para eliminarse de "approaching"
 		for plane in to_remove_landed:
 			if plane in queue:
-				queue.remove(plane)
-		# Actualizar posición de los aviones en estado 'approaching'
-		for plane in queue[:]:
-			if plane.status == 'approaching':
-				plane.update_position(1)
-				if plane.status == 'landed':
-					queue.remove(plane)
+				queue.remove(plane) # se elimina de "approaching" a los aterrizados
 	return planes, total_minutes
 
 # funcion que imprime un resumen estadistico de la simulacion
@@ -200,6 +195,10 @@ def print_summary(planes):
 		
 		# Métricas de atraso
 		def baseline_time_from_100nm():
+			"""
+			calcula el tiempo total que lleva viajar a cierta distancia y distintas velocidades.
+   			DEVUELVE: El tiempo total que lleva viajar a 100 nm basado en las velocidades dadas.
+			"""
 			t = 50/(300/60) + 35/(250/60) + 10/(200/60) + 5/(150/60)
 			return t
 		
@@ -211,12 +210,6 @@ def print_summary(planes):
 def minutos_a_hora(minuto):
 	"""
 	Convierte minutos de simulación a formato hora:minuto.
-	
-	Args:
-		minuto: Minuto de la simulación (0 = 6:00am)
-	
-	Returns:
-		str: Hora en formato "HH:MM"
 	"""
 	hora = 6 + minuto // 60
 	minutos = minuto % 60

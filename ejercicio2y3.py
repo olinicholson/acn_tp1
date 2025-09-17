@@ -1,7 +1,6 @@
-#ejercicio 2 y 3
 import random
 
-from main import Plane, simulate_planes, print_summary, eta_minutes, minutos_a_hora
+from main import Plane, simulate_planes, print_summary, minutos_a_hora
 def cinco_aviones_1hora(lambda_prob, total_minutes):
     """
     Estima la probabilidad de que lleguen exactamente 5 aviones en una hora
