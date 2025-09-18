@@ -105,12 +105,6 @@ def crear_grafico_desvios(resultados, lambdas_prob):
     plt.grid(True, alpha=0.3)
     plt.ylim(0, max(prob_desvios) * 1.3 if prob_desvios else 1)
     
-    # Agregar texto explicativo
-    if prob_desvios:
-        plt.text(0.05, max(prob_desvios) * 0.8, 
-                 'CONCLUSIÓN:\nLos desvíos crecen\nexponencialmente\ncon λ', 
-                 fontsize=14, fontweight='bold',
-                 bbox=dict(boxstyle="round,pad=0.7", facecolor="lightblue", alpha=0.9))
     
     plt.tight_layout()
     plt.show()

@@ -40,7 +40,9 @@ class Plane:
 		self.appear_time = appear_time 
 		self.dist = 100.0  
 		self.status = 'approaching'  # 'approaching', 'montevideo', 'landed'
-		self.speed = self.get_max_speed()
+		# Asignar velocidad inicial aleatoria dentro del rango permitido
+		v_min, v_max = self.get_range()
+		self.speed = random.uniform(v_min, v_max)
 		self.positions = [(appear_time, self.dist)]
 		self.waiting = False
 		self.wait_time = 0
@@ -80,11 +82,13 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 	queue = []
 	rejoining = []
 	next_id = 1
-	random.seed(42)
-	np.random.seed(42)
 	
-	# Usar tqdm para mostrar progreso de la simulación
-	for t in tqdm(range(total_minutes), desc="⏱️  Simulando", unit="min", disable=(total_minutes < 100)):
+	# Usar tqdm para mostrar progreso de la simulación solo si no está deshabilitado globalmente
+	use_tqdm = getattr(simulate_planes, "use_tqdm", True)
+	iterator = range(total_minutes)
+	if use_tqdm:
+		iterator = tqdm(iterator, desc="⏱️  Simulando", unit="min", disable=(total_minutes < 100))
+	for t in iterator:
 		# Aparición de nuevos aviones
 		if random.random() < lambda_prob:
 			plane = Plane(next_id, t)
@@ -184,27 +188,7 @@ def print_summary(planes):
 	montevideo = [p for p in planes if p.status == 'montevideo']
 	en_aproximacion = [p for p in planes if p.status == 'approaching' and p.dist > 0]
 	
-	print(f"Total de aviones simulados: {len(planes)}")
-	print(f"Aterrizados: {len(landed)} ({len(landed)/len(planes)*100:.1f}%)")
-	print(f"Se fueron a Montevideo: {len(montevideo)} ({len(montevideo)/len(planes)*100:.1f}%)")
-	print(f"En aproximación al final (en vuelo): {len(en_aproximacion)}")
-	
-	if landed:
-		tiempos = [p.landed_time - p.appear_time for p in landed]
-		print(f"Tiempo promedio de aproximación y aterrizaje: {np.mean(tiempos):.2f} minutos")
-		
-		# Métricas de atraso
-		def baseline_time_from_100nm():
-			"""
-			calcula el tiempo total que lleva viajar a cierta distancia y distintas velocidades.
-   			DEVUELVE: El tiempo total que lleva viajar a 100 nm basado en las velocidades dadas.
-			"""
-			t = 50/(300/60) + 35/(250/60) + 10/(200/60) + 5/(150/60)
-			return t
-		
-		delays = [(p.landed_time - p.appear_time) - baseline_time_from_100nm() for p in landed]
-		print(f"Atraso promedio respecto al mínimo teórico: {np.mean(delays):.2f} minutos")
-		print(f"Desvío estándar del atraso: {np.std(delays):.2f} minutos")
+
 
 # funcion que convierte minutos de simulacion a formato hora:minuto
 def minutos_a_hora(minuto):
@@ -215,25 +199,3 @@ def minutos_a_hora(minuto):
 	minutos = minuto % 60
 	return f"{hora:02d}:{minutos:02d}"
 
-if __name__ == "__main__":
-	# Simulación Monte Carlo básica - solo estadísticas
-	print("Simulación Monte Carlo de aproximación de aeronaves")
-	print("=" * 60)
-	
-	lambda_prob = 0.15
-	total_minutes = 1080
-	
-	print(f"Parámetros de simulación:")
-	print(f"  Lambda de aparición: {lambda_prob} aviones/minuto")
-	print(f"  Duración: {total_minutes} minutos ({total_minutes/60:.1f} horas)")
-	print(f"  Horario: 6:00am a {minutos_a_hora(total_minutes)}")
-	print()
-	
-	# Ejecutar simulación
-	planes, _ = simulate_planes(lambda_prob, total_minutes)
-	
-	# Mostrar resumen
-	print_summary(planes)
-	print()
-	print("Para visualizaciones detalladas, ejecute:")
-	print("  python visualizations.py")
