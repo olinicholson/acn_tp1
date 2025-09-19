@@ -37,11 +37,18 @@ REJOIN_GAP_MIN = 10 # tiempo minimo de gap para reingresar
 class Plane:
 	def __init__(self, id, appear_time):
 		self.id = id
-		self.appear_time = appear_time 
-		self.dist = 100.0  
+		self.appear_time = appear_time
+		# Distancia inicial fija a 100 mn
+		self.dist = 100.0
+		# Buscar el rango de velocidad permitido según la distancia (100 mn)
+		v_min, v_max = None, None
+		for r_min, r_max, vmin, vmax in APPROACH_RANGES:
+			if r_min < self.dist <= r_max:
+				v_min, v_max = vmin, vmax
+				break
+		if v_min is None or v_max is None:
+			raise ValueError(f"No se encontró rango de velocidad para distancia {self.dist}")
 		self.status = 'approaching'  # 'approaching', 'montevideo', 'landed'
-		# Asignar velocidad inicial aleatoria dentro del rango permitido
-		v_min, v_max = self.get_range()
 		self.speed = random.uniform(v_min, v_max)
 		self.positions = [(appear_time, self.dist)]
 		self.waiting = False
@@ -54,7 +61,7 @@ class Plane:
 		for r_min, r_max, v_min, v_max in APPROACH_RANGES:
 			if r_min < self.dist <= r_max:
 				return v_min, v_max
-		return 120, 150
+		return None, None
 
 	# velocidad maxima del avion
 	def get_max_speed(self):
@@ -129,6 +136,10 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 						else:
 							# Primer avión, no tiene anterior
 							plane.speed = plane.get_max_speed()
+						# Chequeo: ¿la velocidad está dentro del rango permitido?
+						vmin, vmax = plane.get_range()
+						if plane.speed < vmin or plane.speed > vmax:
+							print(f"[ADVERTENCIA] Avión {plane.id} en t={t} mn={plane.dist:.2f} velocidad={plane.speed:.2f} fuera de rango [{vmin}, {vmax}]")
 				# Remover aviones marcados fuera del bucle principal
 				for plane in to_remove:
 					if plane in queue:

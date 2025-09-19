@@ -19,10 +19,8 @@ if __name__ == "__main__":
     print(f"  Horario: 6:00am a {minutos_a_hora(total_minutes)}")
     print()
     
-    # Ejecutar simulación única
     planes, _ = simulate_planes(lambda_prob, total_minutes)
     print_summary(planes)
-    print()
     print("Para visualizaciones detalladas, ejecute:")
     print("  python visualizations.py")
 

@@ -12,7 +12,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from visualizations import (
     run_complete_analysis,
     plot_comparative_analysis,
-    animate_planes_real_time,
     plot_landing_times_bar,
     plot_speed_distribution,
     plot_delay_analysis,
