@@ -210,6 +210,10 @@ def grafico_comparacion_montecarlo(lambdas_test=[0.1, 0.15, 0.2, 0.25, 0.3], N=1
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show()
+    # Mostrar errores de estimación
+    print("\nResultados Monte Carlo:")
+    for i, lam in enumerate(lambdas_test):
+        print(f"λ={lam:.2f} | Normal: {normal_desvios[i]:.2f}% ± {normal_err[i]:.2f} | Ventoso: {ventoso_desvios[i]:.2f}% ± {ventoso_err[i]:.2f}")
     return normal_desvios, normal_err, ventoso_desvios, ventoso_err
 
 # Para ejecutar desde main:
@@ -225,7 +229,6 @@ if __name__ == "__main__":
         print(f"λ={lam}: Normal {mont_normal}, Ventoso {mont_ventoso}")
     
     # Gráfico de líneas
-    print("\n📊 Generando gráfico...")
     grafico_comparacion()
     
     # Gráfico Monte Carlo
