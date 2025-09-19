@@ -84,7 +84,7 @@ def simulate_planes(lambda_prob=0.2, total_minutes=1080):
 	next_id = 1
 	
 	# Usar tqdm para mostrar progreso de la simulación solo si no está deshabilitado globalmente
-	use_tqdm = getattr(simulate_planes, "use_tqdm", True)
+	use_tqdm = getattr(simulate_planes, "use_tqdm", False)
 	iterator = range(total_minutes)
 	if use_tqdm:
 		iterator = tqdm(iterator, desc="⏱️  Simulando", unit="min", disable=(total_minutes < 100))

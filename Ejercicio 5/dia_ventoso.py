@@ -2,7 +2,9 @@
 Ejercicio 5 - Día Ventoso SIMPLIFICADO
 Interrupciones de aterrizaje (1/10) + lógica de rejoin de main.py
 """
-
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from main import Plane, MIN_SEPARATION_MIN, REJOIN_GAP_MIN, BUFFER_MIN, knots_to_nm_per_min, eta_minutes, simulate_planes
 import numpy as np
 import random
@@ -169,68 +171,48 @@ def grafico_comparacion(lambdas_test=[0.1, 0.15, 0.2, 0.25, 0.3]):
     
     return normal_desvios, ventoso_desvios
 
-def simulate_realtime(lambda_prob=0.2, total_minutes=1080):
-    """Generador simple para visualización en tiempo real"""
-    planes = []
-    queue = []
-    rejoining = []
-    next_id = 1
-    stats = {'landed': 0, 'montevideo': 0, 'interrupciones': 0, 'total': 0, 'current_time': 0}
-    
-    for t in range(total_minutes):
-        # Aparición
-        if random.random() < lambda_prob:
-            plane = PlaneVentoso(next_id, t)
-            planes.append(plane)
-            queue.append(plane)
-            next_id += 1
-            stats['total'] += 1
-        
-        # Procesar approaching
-        to_remove = []
-        for plane in queue[:]:
-            if plane.status == 'approaching':
-                plane.update_position(1)
-                
-                if plane.dist <= 0:
-                    if plane.intentar_aterrizaje():
-                        plane.status = 'landed'
-                        to_remove.append(plane)
-                        stats['landed'] += 1
-                    else:
-                        plane.status = 'rejoin'
-                        plane.dist = 20.0
-                        plane.en_interrupcion = True
-                        rejoining.append(plane)
-                        to_remove.append(plane)
-                        stats['interrupciones'] += 1
-                
-                elif plane.dist <= -50:
-                    plane.status = 'montevideo'
-                    to_remove.append(plane)
-                    stats['montevideo'] += 1
-        
-        for plane in to_remove:
-            if plane in queue:
-                queue.remove(plane)
-        
-        # Procesar rejoining
-        for plane in rejoining[:]:
-            plane.dist += 3.33  # 200 knots/min
-            if plane.dist > 100:
-                plane.status = 'montevideo'
-                rejoining.remove(plane)
-                stats['montevideo'] += 1
-            elif len(queue) < 5:  # Gap simple
-                plane.status = 'approaching'
-                plane.dist = 50
-                plane.en_interrupcion = False
-                queue.append(plane)
-                rejoining.remove(plane)
-        
-        stats['current_time'] = t
-        yield [p for p in queue if p.status == 'approaching'], rejoining, stats
+def grafico_comparacion_montecarlo(lambdas_test=[0.1, 0.15, 0.2, 0.25, 0.3], N=100):
+    """Gráfico de líneas comparando normal vs ventoso, con Monte Carlo y barras de error."""
+    print("\nMonte Carlo Día Ventoso vs Normal")
+    import matplotlib.pyplot as plt
+    from tqdm import tqdm
+    normal_desvios = []
+    normal_err = []
+    ventoso_desvios = []
+    ventoso_err = []
+    for lam in tqdm(lambdas_test, desc="Lambda Monte Carlo"):
+        desvios_normal = []
+        desvios_ventoso = []
+        for _ in range(N):
+            # Normal
+            planes_normal, _ = simulate_planes(lam, 1080)
+            if len(planes_normal) > 0:
+                normal_pct = len([p for p in planes_normal if p.status == 'montevideo']) / len(planes_normal) * 100
+                desvios_normal.append(normal_pct)
+            # Ventoso
+            planes_ventoso, _, montevideo_count, _ = simulate_windy_day(lam, 1080)
+            if len(planes_ventoso) > 0:
+                ventoso_pct = montevideo_count / len(planes_ventoso) * 100
+                desvios_ventoso.append(ventoso_pct)
+        # Promedio y error estándar
+        normal_desvios.append(np.mean(desvios_normal))
+        normal_err.append(np.std(desvios_normal) / np.sqrt(N))
+        ventoso_desvios.append(np.mean(desvios_ventoso))
+        ventoso_err.append(np.std(desvios_ventoso) / np.sqrt(N))
+    # Gráfico de líneas con barras de error
+    plt.figure(figsize=(10, 6))
+    plt.errorbar(lambdas_test, normal_desvios, yerr=normal_err, fmt='bo-', linewidth=2, markersize=8, label='Normal', capsize=5)
+    plt.errorbar(lambdas_test, ventoso_desvios, yerr=ventoso_err, fmt='rs-', linewidth=2, markersize=8, label='Ventoso', capsize=5)
+    plt.xlabel('Lambda (aviones/min)', fontsize=12)
+    plt.ylabel('Desvíos (%)', fontsize=12)
+    plt.title('Impacto del Día Ventoso (Monte Carlo)', fontsize=14, fontweight='bold')
+    plt.legend(fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+    return normal_desvios, normal_err, ventoso_desvios, ventoso_err
 
+# Para ejecutar desde main:
 if __name__ == "__main__":
     print("🌪️ DÍA VENTOSO SIMPLIFICADO")
     print("="*30)
@@ -245,3 +227,6 @@ if __name__ == "__main__":
     # Gráfico de líneas
     print("\n📊 Generando gráfico...")
     grafico_comparacion()
+    
+    # Gráfico Monte Carlo
+    grafico_comparacion_montecarlo()

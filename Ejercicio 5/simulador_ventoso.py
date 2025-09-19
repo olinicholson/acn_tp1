@@ -2,6 +2,8 @@ import pygame
 import sys
 import random
 import numpy as np
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from main import Plane, knots_to_nm_per_min, eta_minutes, MIN_SEPARATION_MIN, BUFFER_MIN, REJOIN_GAP_MIN
 from tqdm import tqdm
 import math

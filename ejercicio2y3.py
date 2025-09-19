@@ -2,17 +2,6 @@ import random
 
 from main import Plane, simulate_planes, print_summary, minutos_a_hora
 def cinco_aviones_1hora(lambda_prob, total_minutes):
-    """
-    Estima la probabilidad de que lleguen exactamente 5 aviones en una hora
-    utilizando una simulación suficientemente larga.
-
-    Args:
-        lambda_prob (float): Probabilidad de aparición de un avión por minuto.
-        total_minutes (int): Duración total de la simulación en minutos.
-
-    Returns:
-        float: Probabilidad estimada de que lleguen 5 aviones en una hora.
-    """
     # Lista para almacenar los tiempos de aparición de los aviones
     planes = []
     random.seed(42)  # Fijar semilla para reproducibilidad
