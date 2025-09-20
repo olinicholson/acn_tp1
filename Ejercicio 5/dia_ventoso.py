@@ -228,8 +228,5 @@ if __name__ == "__main__":
         mont_normal = len([p for p in planes_normal if p.status == 'montevideo'])
         print(f"λ={lam}: Normal {mont_normal}, Ventoso {mont_ventoso}")
     
-    # Gráfico de líneas
-    grafico_comparacion()
-    
     # Gráfico Monte Carlo
     grafico_comparacion_montecarlo()
