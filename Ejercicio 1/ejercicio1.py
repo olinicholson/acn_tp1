@@ -26,7 +26,7 @@ if __name__ == "__main__":
     print("Simulación Monte Carlo de aproximación de aeronaves")
     print("=" * 60)
     
-    lambda_prob = 0.15
+    lambda_prob = 0.16355
     total_minutes = 1080
     
     print(f"Parámetros de simulación:")
@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     # --- Monte Carlo: múltiples caminos y promedios ---
     N = 1000  # cantidad de simulaciones
-    lambda_prob_mc = 0.2
+    lambda_prob_mc = 0.16355
     desvios = []
     aterrizajes = []
     totales = []  # Lista para almacenar el total de aviones por simulación
