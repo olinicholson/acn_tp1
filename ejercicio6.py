@@ -33,7 +33,6 @@ def simulate_storm_closure(lambda_prob=0.2, total_minutes=1080, storm_start=540,
     montevideo_count = 0
     storm_end = storm_start + storm_duration
     
-    # Estadísticas específicas de la tormenta
     planes_afectados = 0
     tiempo_espera_total = 0
     max_cola_durante_cierre = 0
@@ -41,48 +40,47 @@ def simulate_storm_closure(lambda_prob=0.2, total_minutes=1080, storm_start=540,
     print(f"🌩️ Simulando tormenta: cierre de {storm_start//60 + 6}:{storm_start%60:02d} a {storm_end//60 + 6}:{storm_end%60:02d}")
     
     for t in tqdm(range(total_minutes), desc="⏱️  Simulando"):
-        # 1. Aparición de aviones (continúa durante la tormenta)
+        # Aparicion de aviones (continúa durante la tormenta)
         if random.random() < lambda_prob:
             plane = PlaneTormenta(next_id, t)
             planes.append(plane)
             queue.append(plane)
             next_id += 1
         
-        # 2. ¿Está el aeropuerto cerrado por tormenta?
+        # Si el aeropuerto esta cerrado
         aeropuerto_cerrado = storm_start <= t < storm_end
         
         if aeropuerto_cerrado:
-            # Durante el cierre: los aviones solo pueden esperar o desviarse
+            # Durante el cierre: los aviones pueden acercarse hasta 10 mn y ahí se enteran que está cerrado
             max_cola_durante_cierre = max(max_cola_durante_cierre, len(queue))
             
-            # Procesar cola: aviones esperan hasta que se queden sin combustible
             to_remove = []
             for plane in queue[:]:
                 if plane.status == 'approaching':
-                    plane.tiempo_espera_cierre += 1
-                    plane.afectado_por_tormenta = True
-                    planes_afectados += 1
-                    tiempo_espera_total += 1
+                    plane.update_position(1)  # Actualizar posición del avión
                     
-                    # Si un avión espera más de 60 minutos, se desvía (combustible)
-                    if plane.tiempo_espera_cierre > 60:
-                        plane.status = 'montevideo'
-                        plane.montevideo_time = t
-                        to_remove.append(plane)
-                        montevideo_count += 1
-                    # Si está muy cerca (< 10nm) y lleva esperando mucho, también se desvía
-                    elif plane.dist < 10 and plane.tiempo_espera_cierre > 30:
-                        plane.status = 'montevideo'
-                        plane.montevideo_time = t
-                        to_remove.append(plane)
-                        montevideo_count += 1
+                    # Si el avión llega a 10 mn, verifica si el aeropuerto está cerrado
+                    if plane.dist <= 10:
+                        if aeropuerto_cerrado:  # Si el aeropuerto sigue cerrado
+                            plane.status = 'montevideo'
+                            plane.montevideo_time = t
+                            to_remove.append(plane)
+                            montevideo_count += 1
+                            planes_afectados += 1
+                        else:
+                            # Si el aeropuerto está abierto, el avión sigue las políticas normales
+                            plane.dist = 0 
+                            plane.status = 'landed'
+                            plane.landed_time = t
+                            landed_count += 1
+                            to_remove.append(plane)
             
             for plane in to_remove:
                 if plane in queue:
                     queue.remove(plane)
-        
+
         else:
-            # Aeropuerto abierto: lógica normal con rejoin
+            # Aeropuerto abierto: lógica normal
             to_remove = []
             for i, plane in enumerate(queue[:]):
                 if plane.status == 'approaching':
@@ -113,7 +111,7 @@ def simulate_storm_closure(lambda_prob=0.2, total_minutes=1080, storm_start=540,
                 if plane in queue:
                     queue.remove(plane)
             
-            # Procesar rejoining
+        
             for plane in rejoining[:]:
                 plane.dist += knots_to_nm_per_min(200)
                 
@@ -137,7 +135,7 @@ def simulate_storm_closure(lambda_prob=0.2, total_minutes=1080, storm_start=540,
                         rejoining.remove(plane)
                         break
             
-            # Actualizar posiciones y aterrizajes (solo si aeropuerto abierto)
+            # Actualizar posiciones y aterrizajes
             to_remove_landed = []
             for plane in queue[:]:
                 if plane.status == 'approaching':
@@ -158,7 +156,6 @@ def simulate_storm_closure(lambda_prob=0.2, total_minutes=1080, storm_start=540,
     
     return (planes, landed_count, montevideo_count, planes_afectados, 
             tiempo_espera_total, max_cola_durante_cierre)
-
 def analizar_impacto_tormenta(lambdas_test=[0.1, 0.15, 0.2, 0.25, 0.3]):
     """Analiza el impacto de la tormenta vs día normal"""
     print("🌩️ ANÁLISIS DE IMPACTO DE TORMENTA")
