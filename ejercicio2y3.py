@@ -6,9 +6,9 @@ def cinco_aviones_1hora(lambda_prob, total_minutes):
     planes = []
     random.seed(42)  # Fijar semilla para reproducibilidad
 
-    # Simular minuto a minuto
+    # Generar aviones aleatoriamente con una simulacion de proceso de Poisson
     for t in range(total_minutes):
-        if random.random() < lambda_prob:
+        if random.random() < lambda_prob: #random genera un numero aleatorio entre 0 y 1
             planes.append(t)
 
     # Dividir en intervalos de 60 minutos y contar aviones
