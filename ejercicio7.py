@@ -3,6 +3,7 @@ import sys
 import os
 import random
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from main import APPROACH_RANGES, eta_minutes, knots_to_nm_per_min, print_summary, minutos_a_hora
@@ -56,16 +57,14 @@ class PlaneWithFuel:
         return self.fuel >= fuel_needed
     
 def simulate_planes_holding(lambda_prob=0.2, total_minutes=1080):
-    HOLD_INNER_NM = 10
-    HOLD_OUTER_NM = 15
-    HOLD_SPEED = 230  # velocidad típica en holding bajo FL140
+    HOLD_RADIUS = 5     # amplitud del racetrack (mn)
+    HOLD_SPEED = 230    # velocidad típica en holding
 
     planes = []
     queue = []
     holding = []
     next_id = 1
 
-    
     for t in range(total_minutes):
         # Aparición de nuevos aviones
         if random.random() < lambda_prob:
@@ -76,7 +75,7 @@ def simulate_planes_holding(lambda_prob=0.2, total_minutes=1080):
 
         # Procesar aviones en estado 'approaching'
         to_remove = []
-        for i, plane in enumerate(queue[:] ):
+        for i, plane in enumerate(queue[:]):
             if plane.status == 'approaching':
                 if i > 0:
                     prev = queue[i-1]
@@ -89,8 +88,12 @@ def simulate_planes_holding(lambda_prob=0.2, total_minutes=1080):
                     if (curr_time_to_land - prev_time_to_land) < 4:
                         required_speed = prev.speed - 20
                         if required_speed < plane.get_range()[0] or (curr_time_to_land_nueva - prev_time_to_land) < 5:
+                            # 🚀 Ahora el holding se centra en la posición actual
                             plane.status = 'holding'
                             plane.holding_start_time = t
+                            plane.hold_center = plane.dist        # centro del patrón
+                            plane.hold_min = max(0, plane.dist - HOLD_RADIUS)
+                            plane.hold_max = plane.dist + HOLD_RADIUS
                             holding.append(plane)
                             to_remove.append(plane)
                             continue
@@ -106,21 +109,19 @@ def simulate_planes_holding(lambda_prob=0.2, total_minutes=1080):
 
         # Procesar aviones en holding
         for plane in holding[:]:
-            # Mantenerse en patrón de espera entre 10 y 15 NM
-            if plane.dist > HOLD_OUTER_NM:
-                plane.dist = HOLD_OUTER_NM
-            elif plane.dist < HOLD_INNER_NM:
-                    plane.dist = HOLD_INNER_NM
-            else:
-                # Oscila entre inner y outer como si fueran las piernas del racetrack
-                sentido = random.choice([-1, 1])
-                nueva_dist = plane.dist + sentido * (HOLD_OUTER_NM - HOLD_INNER_NM)
-                plane.dist = nueva_dist
+            # Oscilar entre hold_min y hold_max
+            sentido = random.choice([-1, 1])
+            nueva_dist = plane.dist + sentido * HOLD_RADIUS
+            if nueva_dist < plane.hold_min:
+                nueva_dist = plane.hold_min
+            elif nueva_dist > plane.hold_max:
+                nueva_dist = plane.hold_max
+            plane.dist = nueva_dist
 
             plane.speed = HOLD_SPEED
             plane.update_position(1, plane.speed)
 
-            # Si no puede llegar a Montevideo, se desvía
+            # Si no alcanza combustible → Montevideo
             if not plane.can_reach_montevideo():
                 plane.status = 'montevideo'
                 plane.montevideo_time = t
@@ -128,7 +129,6 @@ def simulate_planes_holding(lambda_prob=0.2, total_minutes=1080):
                 continue
 
             # Buscar gap en la cola
-            gap_found = False
             for j in range(1, len(queue)):
                 prev2 = queue[j-1]
                 curr2 = queue[j]
@@ -136,14 +136,13 @@ def simulate_planes_holding(lambda_prob=0.2, total_minutes=1080):
                 curr2_time = t + eta_minutes(curr2.dist, curr2.speed) if curr2.status != 'landed' else curr2.landed_time
                 if (curr2_time - prev2_time) >= 10:
                     plane.status = 'approaching'
-                    plane.dist = HOLD_INNER_NM
+                    # Reincorpora desde la posición actual de su holding
                     plane.positions.append((plane.positions[-1][0], plane.dist))
                     queue.insert(j, plane)
                     holding.remove(plane)
-                    gap_found = True
                     break
 
-        # Actualizar posición de los aviones en estado 'approaching'
+        # Actualizar aviones en aproximación
         to_remove_landed = []
         for plane in queue[:]:
             if plane.status == 'approaching':
@@ -153,11 +152,6 @@ def simulate_planes_holding(lambda_prob=0.2, total_minutes=1080):
         for plane in to_remove_landed:
             if plane in queue:
                 queue.remove(plane)
-
-    # Resumen estadístico
-    landed = [p for p in planes if p.status == 'landed']
-    montevideo = [p for p in planes if p.status == 'montevideo']
-    total = len(landed) + len(montevideo)
 
     return planes, total_minutes
 
