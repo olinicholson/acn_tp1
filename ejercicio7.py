@@ -161,6 +161,7 @@ def simulate_planes_holding(lambda_prob=0.2, total_minutes=1080):
 
     return planes, total_minutes
 
+
 simulate_planes_holding.use_tqdm = True
 if __name__ == "__main__":
     print("Simulación con política de holding y combustible (Ejercicio 7)")
@@ -189,3 +190,40 @@ if __name__ == "__main__":
     desvios_arr = np.array(desvios)
     error_std = np.std(desvios_arr) / np.sqrt(N)
     print(f"Error estándar del porcentaje de desvíos: {100 * error_std:.2f}%")
+    
+    def get_plane_wait_time(plane):
+        # Calcula el tiempo total en holding
+        if not hasattr(plane, 'positions') or not hasattr(plane, 'status'):
+            return 0
+        holding_time = 0
+        last_status = None
+        for i in range(1, len(plane.positions)):
+            t0, _ = plane.positions[i-1]
+            t1, _ = plane.positions[i]
+            # Si el avión estuvo en holding en este intervalo
+            if getattr(plane, 'holding_start_time', None) is not None and t0 >= plane.holding_start_time:
+                holding_time += t1 - t0
+        return holding_time
+
+    def get_ideal_flight_time():
+        # Tiempo ideal desde 100 mn a 0 mn a velocidad máxima (500 nudos)
+        dist = 100
+        speed = 500
+        return dist / (speed / 60.0)  # minutos
+
+    # Después del resumen estadístico en el main
+    # Calcular tiempos de espera y extra
+    wait_times = []
+    extra_times = []
+    ideal_time = get_ideal_flight_time()
+    for p in planes:
+        if p.status == 'landed':
+            appear = p.appear_time
+            landed = p.landed_time
+            total_time = landed - appear
+            wait = get_plane_wait_time(p)
+            wait_times.append(wait)
+            extra_times.append(total_time - ideal_time)
+    if wait_times:
+        print(f"\nPromedio tiempo de espera en holding: {np.mean(wait_times):.2f} min")
+        print(f"Promedio tiempo extra respecto al vuelo ideal: {np.mean(extra_times):.2f} min")

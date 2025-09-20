@@ -5,6 +5,22 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from main import simulate_planes, print_summary, minutos_a_hora
 from tqdm import tqdm as tqdm_ext
 
+def get_plane_wait_time(plane):
+    # Calcula el tiempo total en rejoin (espera)
+    if not hasattr(plane, 'positions') or not hasattr(plane, 'status'):
+        return 0
+    wait_time = 0
+    if hasattr(plane, 'rejoin_start_time') and hasattr(plane, 'landed_time'):
+        # Si el avión fue a rejoin y luego aterrizó
+        wait_time = plane.landed_time - plane.rejoin_start_time
+    return max(wait_time, 0)
+
+def get_ideal_flight_time():
+    # Tiempo ideal desde 100 mn a 0 mn a velocidad máxima (500 nudos)
+    dist = 100
+    speed = 500
+    return dist / (speed / 60.0)  # minutos
+
 if __name__ == "__main__":
     # Simulación Monte Carlo básica - solo estadísticas
     print("Simulación Monte Carlo de aproximación de aeronaves")
@@ -21,8 +37,6 @@ if __name__ == "__main__":
     
     planes, _ = simulate_planes(lambda_prob, total_minutes)
     print_summary(planes)
-    print("Para visualizaciones detalladas, ejecute:")
-    print("  python visualizations.py")
 
     # --- Monte Carlo: múltiples caminos y promedios ---
     N = 1000  # cantidad de simulaciones
@@ -53,3 +67,20 @@ if __name__ == "__main__":
     desvios_arr = np.array(desvios)
     error_std = np.std(desvios_arr) / np.sqrt(N)
     print(f"Error estándar del porcentaje de desvíos: {100 * error_std:.2f}%")
+    
+    # Después del resumen estadístico en el main
+    # Calcular tiempos de espera y extra
+    wait_times = []
+    extra_times = []
+    ideal_time = get_ideal_flight_time()
+    for p in planes:
+        if p.status == 'landed':
+            appear = p.appear_time
+            landed = p.landed_time
+            total_time = landed - appear
+            wait = get_plane_wait_time(p)
+            wait_times.append(wait)
+            extra_times.append(total_time - ideal_time)
+    if wait_times:
+        print(f"\nPromedio tiempo de espera (rejoin): {np.mean(wait_times):.2f} min")
+        print(f"Promedio tiempo extra respecto al vuelo ideal: {np.mean(extra_times):.2f} min")
