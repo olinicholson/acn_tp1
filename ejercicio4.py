@@ -1,9 +1,114 @@
-# multiples simulaciones Monte Carlo para distintos valores de lambda 
+# En este archivo ejecutamos multiples simulaciones Monte Carlo para distintos valores de lambda 
 from main import simulate_planes, Plane
 import numpy as np
 from tqdm import tqdm
 
+# funcion que crea un grafico simple mostrando como aumentan los desvios
+def crear_grafico_desvios(resultados, lambdas_prob):
+    """
+    Crea un gráfico simple mostrando cómo aumentan los desvíos exponencialmente.
+    """
+    import matplotlib.pyplot as plt
+    
+    # Preparar datos
+    lambdas = list(lambdas_prob)
+    prob_desvios = [resultados[l]['prob_desvio'] * 100 for l in lambdas]  # Convertir a porcentaje
+    
+    # Crear gráfico simple y claro
+    plt.figure(figsize=(12, 8))
+    
+    # Gráfico de línea con puntos grandes
+    plt.plot(lambdas, prob_desvios, 'ro-', linewidth=4, markersize=15, 
+             markerfacecolor='red', markeredgecolor='darkred', markeredgewidth=2)
+    
+    # Etiquetas y título
+    plt.xlabel('Tasa de Arribo λ (aviones por minuto)', fontsize=14, fontweight='bold')
+    plt.ylabel('Desvíos a Montevideo (%)', fontsize=14, fontweight='bold')
+    plt.title('📈 CRECIMIENTO EXPONENCIAL DE DESVÍOS vs TASA DE ARRIBO', fontsize=16, fontweight='bold')
+    
+    # Agregar valores en cada punto
+    for x, y in zip(lambdas, prob_desvios):
+        plt.annotate(f'{y:.1f}%', (x, y), textcoords="offset points", 
+                    xytext=(0,20), ha='center', fontsize=14, fontweight='bold',
+                    bbox=dict(boxstyle="round,pad=0.5", facecolor="yellow", alpha=0.8))
+    
+    # Mejorar la visualización
+    plt.grid(True, alpha=0.3)
+    plt.ylim(0, max(prob_desvios) * 1.3 if prob_desvios else 1)
+    
+    
+    plt.tight_layout()
+    plt.show()
+
+# funcion que crea un grafico mostrando la probabilidad de congestión
+def crear_grafico_congestion(resultados, lambdas_prob):
+    """
+    Crea un gráfico mostrando cómo varía la probabilidad de congestión según λ.
+    """
+    import matplotlib.pyplot as plt
+    
+    lambdas = list(lambdas_prob)
+    prob_congestion = [resultados[l]['prob_congestion'] * 100 for l in lambdas]  # Convertir a %
+
+    plt.figure(figsize=(12, 8))
+    plt.plot(lambdas, prob_congestion, 'bo-', linewidth=4, markersize=15,
+             markerfacecolor='blue', markeredgecolor='darkblue', markeredgewidth=2)
+
+    # Etiquetas y título
+    plt.xlabel('Tasa de Arribo λ (aviones por minuto)', fontsize=14, fontweight='bold')
+    plt.ylabel('Probabilidad de Congestión (%)', fontsize=14, fontweight='bold')
+    plt.title('📉 PROBABILIDAD DE CONGESTIÓN vs TASA DE ARRIBO', fontsize=16, fontweight='bold')
+
+    # Agregar valores en cada punto
+    for x, y in zip(lambdas, prob_congestion):
+        plt.annotate(f'{y:.1f}%', (x, y), textcoords="offset points", 
+                    xytext=(0,20), ha='center', fontsize=14, fontweight='bold',
+                    bbox=dict(boxstyle="round,pad=0.5", facecolor="yellow", alpha=0.8))
+
+    plt.grid(True, alpha=0.3)
+    plt.ylim(0, max(prob_congestion) * 1.3 if prob_congestion else 1)
+    plt.tight_layout()
+    plt.show()
+
+# funcion que muestra una tabla de resumen de los datos obtenidos en las simulaciones
+def mostrar_tabla_resumen(resultados, lambdas_prob):
+    """
+    Muestra una tabla de resumen clara y simple.
+    """
+    print("\n" + "="*80)
+    print("TABLA DE RESUMEN - IMPACTO DE λ EN DESVÍOS")
+    print("="*80)
+    print("| λ (aviones/min) | Total Aviones | Aterrizados | Desvíos | % Desvíos | Retraso (min) |")
+    print("|-----------------|----------------|-------------|---------|-----------|---------------|")
+
+    for lambda_val in lambdas_prob:
+        r = resultados[lambda_val]
+        print(f"| {lambda_val:>13.2f} | {r['total_aviones']:>11} | {r['aterrizados']:>9} | {r['desviados']:>7} | {r['prob_desvio']*100:>7.1f}% | {r['retraso_promedio']:>11.1f} |")
+    
+    print("="*80)
+    
+    # Análisis de crecimiento
+    print("\n ANÁLISIS DE CRECIMIENTO:")
+    print("-"*50)
+    
+    desvios_porcentajes = [resultados[l]['prob_desvio']*100 for l in lambdas_prob]
+    
+    for i in range(1, len(lambdas_prob)):
+        lambda_prev = lambdas_prob[i-1]
+        lambda_curr = lambdas_prob[i]
+        desvio_prev = desvios_porcentajes[i-1]
+        desvio_curr = desvios_porcentajes[i]
+        
+        if desvio_prev > 0:
+            multiplicador = desvio_curr / desvio_prev
+            print(f" De λ={lambda_prev} a λ={lambda_curr}: {desvio_prev:.1f}% → {desvio_curr:.1f}% (×{multiplicador:.1f})")
+        else:
+            print(f" De λ={lambda_prev} a λ={lambda_curr}: {desvio_prev:.1f}% → {desvio_curr:.1f}%")
+
+    print("="*80)
+
 # funcion que realiza multiples simulaciones Monte Carlo para distintos valores de lambda
+# y luego calcula estadisticas en base a los valores observados en la simulacion 
 def arrivos_congest(lambdas_prob, total_minutes):
     resultados = {}
     
@@ -68,87 +173,13 @@ def arrivos_congest(lambdas_prob, total_minutes):
 
     # Generar gráfico simple y tabla de resumen
     crear_grafico_desvios(resultados, lambdas_prob)
+    crear_grafico_congestion(resultados, lambdas_prob)
     mostrar_tabla_resumen(resultados, lambdas_prob)
     
     return resultados
 
-# funcion que crea un grafico simple mostrando como aumentan los desvios
-def crear_grafico_desvios(resultados, lambdas_prob):
-    """
-    Crea un gráfico simple mostrando cómo aumentan los desvíos exponencialmente.
-    """
-    import matplotlib.pyplot as plt
-    
-    # Preparar datos
-    lambdas = list(lambdas_prob)
-    prob_desvios = [resultados[l]['prob_desvio'] * 100 for l in lambdas]  # Convertir a porcentaje
-    
-    # Crear gráfico simple y claro
-    plt.figure(figsize=(12, 8))
-    
-    # Gráfico de línea con puntos grandes
-    plt.plot(lambdas, prob_desvios, 'ro-', linewidth=4, markersize=15, 
-             markerfacecolor='red', markeredgecolor='darkred', markeredgewidth=2)
-    
-    # Etiquetas y título
-    plt.xlabel('Tasa de Arribo λ (aviones por minuto)', fontsize=14, fontweight='bold')
-    plt.ylabel('Desvíos a Montevideo (%)', fontsize=14, fontweight='bold')
-    plt.title('📈 CRECIMIENTO EXPONENCIAL DE DESVÍOS vs TASA DE ARRIBO', fontsize=16, fontweight='bold')
-    
-    # Agregar valores en cada punto
-    for x, y in zip(lambdas, prob_desvios):
-        plt.annotate(f'{y:.1f}%', (x, y), textcoords="offset points", 
-                    xytext=(0,20), ha='center', fontsize=14, fontweight='bold',
-                    bbox=dict(boxstyle="round,pad=0.5", facecolor="yellow", alpha=0.8))
-    
-    # Mejorar la visualización
-    plt.grid(True, alpha=0.3)
-    plt.ylim(0, max(prob_desvios) * 1.3 if prob_desvios else 1)
-    
-    
-    plt.tight_layout()
-    plt.show()
-
-# funcion que muestra una tabla de resumen de los datos obtenidos en las simulaciones
-def mostrar_tabla_resumen(resultados, lambdas_prob):
-    """
-    Muestra una tabla de resumen clara y simple.
-    """
-    print("\n" + "="*80)
-    print("TABLA DE RESUMEN - IMPACTO DE λ EN DESVÍOS")
-    print("="*80)
-    print("| λ (aviones/min) | Total Aviones | Aterrizados | Desvíos | % Desvíos | Retraso (min) |")
-    print("|-----------------|----------------|-------------|---------|-----------|---------------|")
-
-    for lambda_val in lambdas_prob:
-        r = resultados[lambda_val]
-        print(f"| {lambda_val:>13.2f} | {r['total_aviones']:>11} | {r['aterrizados']:>9} | {r['desviados']:>7} | {r['prob_desvio']*100:>7.1f}% | {r['retraso_promedio']:>11.1f} |")
-    
-    print("="*80)
-    
-    # Análisis de crecimiento
-    print("\n ANÁLISIS DE CRECIMIENTO:")
-    print("-"*50)
-    
-    desvios_porcentajes = [resultados[l]['prob_desvio']*100 for l in lambdas_prob]
-    
-    for i in range(1, len(lambdas_prob)):
-        lambda_prev = lambdas_prob[i-1]
-        lambda_curr = lambdas_prob[i]
-        desvio_prev = desvios_porcentajes[i-1]
-        desvio_curr = desvios_porcentajes[i]
-        
-        if desvio_prev > 0:
-            multiplicador = desvio_curr / desvio_prev
-            print(f" De λ={lambda_prev} a λ={lambda_curr}: {desvio_prev:.1f}% → {desvio_curr:.1f}% (×{multiplicador:.1f})")
-        else:
-            print(f" De λ={lambda_prev} a λ={lambda_curr}: {desvio_prev:.1f}% → {desvio_curr:.1f}%")
-
-    print("="*80)
-
-
 if __name__ == "__main__":
-    # parámetros de simulación
+    # parámetros de simulación a probar 
     lambdas_prob = [0.02, 0.1, 0.2, 0.5, 1.0]  
     total_minutes = 1080  # duración de la simulación en minutos 
     
