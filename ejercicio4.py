@@ -1,9 +1,9 @@
-
+# multiples simulaciones Monte Carlo para distintos valores de lambda 
 from main import simulate_planes, Plane
 import numpy as np
 from tqdm import tqdm
 
-
+# funcion que realiza multiples simulaciones Monte Carlo para distintos valores de lambda
 def arrivos_congest(lambdas_prob, total_minutes):
     resultados = {}
     
@@ -72,7 +72,7 @@ def arrivos_congest(lambdas_prob, total_minutes):
     
     return resultados
 
-
+# funcion que crea un grafico simple mostrando como aumentan los desvios
 def crear_grafico_desvios(resultados, lambdas_prob):
     """
     Crea un gráfico simple mostrando cómo aumentan los desvíos exponencialmente.
@@ -109,7 +109,7 @@ def crear_grafico_desvios(resultados, lambdas_prob):
     plt.tight_layout()
     plt.show()
 
-
+# funcion que muestra una tabla de resumen de los datos obtenidos en las simulaciones
 def mostrar_tabla_resumen(resultados, lambdas_prob):
     """
     Muestra una tabla de resumen clara y simple.
@@ -148,9 +148,9 @@ def mostrar_tabla_resumen(resultados, lambdas_prob):
 
 
 if __name__ == "__main__":
-    # Parámetros de simulación
-    lambdas_prob = [0.02, 0.1, 0.2, 0.5, 1.0]  # Agregado λ=1.0 según el enunciado
-    total_minutes = 1080  # Duración de la simulación en minutos (18 horas)
+    # parámetros de simulación
+    lambdas_prob = [0.02, 0.1, 0.2, 0.5, 1.0]  
+    total_minutes = 1080  # duración de la simulación en minutos 
     
     print(" ANÁLISIS DE CONGESTIÓN AEROPORTUARIA")
     print("=" * 60)
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     print(f"Duración de cada simulación: {total_minutes} minutos ({total_minutes/60} horas)")
     print("=" * 60)
     
-    # Ejecutar simulaciones y generar gráfico simple + tabla
+    # ejecutar simulaciones y generar gráfico simple + tabla
     resultados = arrivos_congest(lambdas_prob, total_minutes)
     
     

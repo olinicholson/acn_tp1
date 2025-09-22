@@ -1,6 +1,8 @@
+# calculo de la probabilidad de que lleguen exactamente 5 aviones en una hora, dada la proba de que llegue un avion en una hora. 
 import random
-
 from main import Plane, simulate_planes, print_summary, minutos_a_hora
+
+# funcion que calcula la probabilidad de que lleguen exactamente 5 aviones en una hora
 def cinco_aviones_1hora(lambda_prob, total_minutes):
     # Lista para almacenar los tiempos de aparición de los aviones
     planes = []
@@ -26,13 +28,12 @@ def cinco_aviones_1hora(lambda_prob, total_minutes):
     probability = count_target / total_intervals
     return probability
 
-
-# Simulación Monte Carlo básica - solo estadísticas
+# simulación Monte Carlo básica - solo estadísticas
 print("Simulación Monte Carlo de aproximación de aeronaves")
 
-# Calcular lambda para un arribo por hora 
+# calcular lambda para un arribo por hora 
 lambda_prob = 1 / 60
-# Duración de la simulación en minutos
+# duración de la simulación en minutos
 total_minutes = 1080
 
 print(f"Parámetros de simulación:")
@@ -41,26 +42,26 @@ print(f"  Duración: {total_minutes} minutos ({total_minutes/60:.1f} horas)")
 print(f"  Horario: 6:00am a {minutos_a_hora(total_minutes)}")
 print()
 
-# Ejecutar simulación
+# simulación
 planes, _ = simulate_planes(lambda_prob, total_minutes)
 
-# Mostrar resumen
+# resumen
 print_summary(planes)
 print()
      
-# Simulación Monte Carlo básica - solo estadísticas
+# simulación Monte Carlo básica - solo estadísticas
 print("Simulación Monte Carlo de aproximación de aeronaves")
 
-# Calcular lambda para un arribo por hora 
+# calcular lambda para un arribo por hora 
 lambda_prob = 1 / 60
-# Duración de la simulación en minutos
-total_minutes = 100000 * 60  # Simular 100,000 horas para este ejercicio
+# duración de la simulación en minutos
+total_minutes = 100000 * 60  # 100 horas
 
 print(f"Parámetros de simulación:")
 print(f"  Lambda de aparición: {lambda_prob:.4f} aviones/minuto")
 print(f"  Duración: {total_minutes} minutos ({total_minutes/60:.1f} horas)")
 print()
 
-# Ejecutar simulación para el ejercicio 3
+# simulación para el ejercicio 3
 prob_5_planes = cinco_aviones_1hora(lambda_prob, total_minutes)
 print(f"Probabilidad estimada de que lleguen 5 aviones en una hora: {prob_5_planes:.6f}")

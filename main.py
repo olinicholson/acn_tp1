@@ -1,4 +1,4 @@
-
+# Simulación de llegada y aproximación de aviones a AEP, y otras funciones relevantes para esta simulacion.
 import numpy as np
 import random
 from tqdm import tqdm
@@ -10,6 +10,15 @@ def knots_to_nm_per_min(knots: float) -> float:
 # funcion que calcula el tiempo estimado de llegada en minutos, dado una distancia en millas náuticas y una velocidad en nudos.
 def eta_minutes(dist_nm: float, speed_knots: float) -> float:
 	return dist_nm / knots_to_nm_per_min(speed_knots)
+
+# funcion que convierte minutos de simulacion a formato hora:minuto
+def minutos_a_hora(minuto):
+	"""
+	Convierte minutos de simulación a formato hora:minuto.
+	"""
+	hora = 6 + minuto // 60
+	minutos = minuto % 60
+	return f"{hora:02d}:{minutos:02d}"
 
 # rangos de la velocidad maxima permitida de acuerdo a la distancia a AEP
 APPROACH_RANGES = [
@@ -199,14 +208,3 @@ def print_summary(planes):
 	montevideo = [p for p in planes if p.status == 'montevideo']
 	en_aproximacion = [p for p in planes if p.status == 'approaching' and p.dist > 0]
 	
-
-
-# funcion que convierte minutos de simulacion a formato hora:minuto
-def minutos_a_hora(minuto):
-	"""
-	Convierte minutos de simulación a formato hora:minuto.
-	"""
-	hora = 6 + minuto // 60
-	minutos = minuto % 60
-	return f"{hora:02d}:{minutos:02d}"
-

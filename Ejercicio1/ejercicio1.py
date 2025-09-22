@@ -1,28 +1,33 @@
+# Simulación Monte Carlo de aproximación de aeronaves 
 import numpy as np
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from main import simulate_planes, print_summary, minutos_a_hora
+# para mostrar barras de progreso
 from tqdm import tqdm as tqdm_ext
 
+# función que calcula el tiempo total de espera de un avión en estado 'rejoin'
 def get_plane_wait_time(plane):
-    # Calcula el tiempo total en rejoin (espera)
+    # calcula el tiempo total en rejoin (espera)
     if not hasattr(plane, 'positions') or not hasattr(plane, 'status'):
         return 0
     wait_time = 0
     if hasattr(plane, 'rejoin_start_time') and hasattr(plane, 'landed_time'):
-        # Si el avión fue a rejoin y luego aterrizó
+        # si el avión fue a rejoin y luego aterrizó
         wait_time = plane.landed_time - plane.rejoin_start_time
     return max(wait_time, 0)
 
+# función que calcula el tiempo ideal de vuelo desde 100 millas náuticas (mn) hasta 0 mn, 
+# asumiendo que el avión vuela a la velocidad máxima permitida
 def get_ideal_flight_time():
-    # Tiempo ideal desde 100 mn a 0 mn a velocidad máxima (500 nudos)
+    # tiempo ideal desde 100 mn a 0 mn a velocidad máxima (500 nudos)
     dist = 100
     speed = 500
     return dist / (speed / 60.0)  # minutos
 
 if __name__ == "__main__":
-    # Simulación Monte Carlo básica - solo estadísticas
+    # simulación Monte Carlo básica - solo estadísticas
     print("Simulación Monte Carlo de aproximación de aeronaves")
     print("=" * 60)
     
@@ -43,8 +48,8 @@ if __name__ == "__main__":
     lambda_prob_mc = 0.16355
     desvios = []
     aterrizajes = []
-    totales = []  # Lista para almacenar el total de aviones por simulación
-    aterrizajes_totales = []  # Lista para almacenar el total de aviones aterrizados por simulación
+    totales = []  # lista para almacenar el total de aviones por simulación
+    aterrizajes_totales = []  # lista para almacenar el total de aviones aterrizados por simulación
     simulate_planes.use_tqdm = False
     for i in tqdm_ext(range(N), desc="Monte Carlo", unit="sim"):
         planes_mc, _ = simulate_planes(lambda_prob=lambda_prob_mc, total_minutes=total_minutes)
@@ -54,22 +59,22 @@ if __name__ == "__main__":
         if total > 0:
             desvios.append(montevideo / total)
             aterrizajes.append(landed / total)
-            totales.append(total)  # Agregar el total de aviones de esta simulación
-            aterrizajes_totales.append(landed)  # Agregar el total de aviones aterrizados de esta simulación
+            totales.append(total)  # agregar el total de aviones de esta simulación
+            aterrizajes_totales.append(landed)  # agregar el total de aviones aterrizados de esta simulación
     simulate_planes.use_tqdm = True
     print(f"\nMonte Carlo ({N} caminos, lambda={lambda_prob_mc}):")
     print(f"Promedio porcentaje desvíos: {100 * sum(desvios)/len(desvios):.1f}%")
     print(f"Promedio porcentaje aterrizajes: {100 * sum(aterrizajes)/len(aterrizajes):.1f}%")
-    print(f"Promedio total de aviones: {sum(totales)/len(totales):.1f}")  # Mostrar el promedio total de aviones
-    print(f"Promedio total de aviones aterrizados: {sum(aterrizajes_totales)/len(aterrizajes_totales):.1f}")  # Mostrar el promedio total de aviones aterrizados
+    print(f"Promedio total de aviones: {sum(totales)/len(totales):.1f}")  # mostrar el promedio total de aviones
+    print(f"Promedio total de aviones aterrizados: {sum(aterrizajes_totales)/len(aterrizajes_totales):.1f}")  # mostrar el promedio total de aviones aterrizados
     
-    # Calcular error estándar del porcentaje de desvíos
+    # calcular error estándar del porcentaje de desvíos
     desvios_arr = np.array(desvios)
     error_std = np.std(desvios_arr) / np.sqrt(N)
     print(f"Error estándar del porcentaje de desvíos: {100 * error_std:.2f}%")
     
-    # Después del resumen estadístico en el main
-    # Calcular tiempos de espera y extra
+    # después del resumen estadístico en el main
+    # calcular tiempos de espera y extra
     wait_times = []
     extra_times = []
     ideal_time = get_ideal_flight_time()
