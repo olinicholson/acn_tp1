@@ -1,18 +1,23 @@
-from main import Plane, MIN_SEPARATION_MIN, REJOIN_GAP_MIN, BUFFER_MIN, knots_to_nm_per_min, eta_minutes, simulate_planes
+# simulacion de aproximacion de aviones a AEP en un dia de tormenta
 import random
+import numpy as np
+import sys
+import os
+import matplotlib.pyplot as plt
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from tqdm import tqdm as tqdm_ext
+from main import Plane, MIN_SEPARATION_MIN, REJOIN_GAP_MIN, BUFFER_MIN, knots_to_nm_per_min, eta_minutes, simulate_planes, minutos_a_hora
 
+# clase PlaneTormenta que hereda de Plane y agrega atributos para manejar el cierre por tormenta
 class PlaneTormenta(Plane):
     def __init__(self, id, appear_time):
         super().__init__(id, appear_time)
         self.tiempo_espera_cierre = 0
         self.afectado_por_tormenta = False
 
+# funcion que simula la llegada y aproximacion de aviones a AEP con cierre por tormenta
 def simulate_storm_closure(lambda_prob=0.2, total_minutes=1080, storm_start=None, storm_duration=30):
-    """
-    Simula un día con cierre sorpresivo del aeropuerto por tormenta.
-    Si storm_start no se pasa, se elige un inicio aleatorio.
-    """
-    # Si no se especifica, elegir inicio random para la tormenta
+    # si no se especifica storm_start, elegir inicio random para la tormenta
     if storm_start is None:
         storm_start = random.randint(0, total_minutes - storm_duration)
 
@@ -30,7 +35,7 @@ def simulate_storm_closure(lambda_prob=0.2, total_minutes=1080, storm_start=None
     max_cola_durante_cierre = 0
 
     for t in range(total_minutes):
-        # Aparición de aviones
+        # aparición de aviones
         if random.random() < lambda_prob:
             plane = PlaneTormenta(next_id, t)
             planes.append(plane)
@@ -128,3 +133,69 @@ def simulate_storm_closure(lambda_prob=0.2, total_minutes=1080, storm_start=None
 
     return (planes, landed_count, montevideo_count, planes_afectados, 
         tiempo_espera_total, max_cola_durante_cierre, storm_start, storm_end)
+
+if __name__ == "__main__":
+    print("Simulación Monte Carlo comparativa: Día Normal vs Día con Tormenta")
+    print("=" * 70)
+
+    lambda_prob_mc = 0.2
+    total_minutes = 1080
+    N = 1000  # cantidad de simulaciones
+
+    print(f"Parámetros de simulación:")
+    print(f"  Lambda de aparición: {lambda_prob_mc} aviones/minuto")
+    print(f"  Duración: {total_minutes} minutos ({total_minutes/60:.1f} horas)")
+    print(f"  Horario: 6:00am a {minutos_a_hora(total_minutes)}")
+    print(f"  Iteraciones Monte Carlo: {N}")
+    print()
+
+    # Fijamos un horario de tormenta para todas las simulaciones
+    import random
+    storm_start_fixed = random.randint(0, total_minutes - 30)
+
+    # Día normal
+    desvios_normal, aterrizajes_normal, totales_normal = [], [], []
+    simulate_planes.use_tqdm = False
+    for _ in tqdm_ext(range(N), desc="Monte Carlo (Normal)", unit="sim"):
+        planes_mc, _ = simulate_planes(lambda_prob=lambda_prob_mc, total_minutes=total_minutes)
+        landed = len([p for p in planes_mc if p.status == 'landed'])
+        montevideo = len([p for p in planes_mc if p.status == 'montevideo'])
+        total = landed + montevideo
+        if total > 0:
+            desvios_normal.append(montevideo / total)
+            aterrizajes_normal.append(landed / total)
+            totales_normal.append(total)
+
+    # Día con tormenta 
+    desvios_tormenta, aterrizajes_tormenta, totales_tormenta, afectados_tormenta = [], [], [], []
+    for _ in tqdm_ext(range(N), desc="Monte Carlo (Tormenta)", unit="sim"):
+        planes_mc, landed, montevideo, afectados, tiempo_espera, max_cola, storm_start, storm_end = simulate_storm_closure(
+            lambda_prob=lambda_prob_mc,
+            total_minutes=total_minutes,
+            storm_start=storm_start_fixed 
+        )
+        total = landed + montevideo
+        if total > 0:
+            desvios_tormenta.append(montevideo / total)
+            aterrizajes_tormenta.append(landed / total)
+            totales_tormenta.append(total)
+            afectados_tormenta.append(afectados)
+
+    # Resultados 
+    print("\n Resultados comparativos (promedios de 1000 simulaciones):")
+    print("-" * 70)
+    print(f"➡️ Día Normal:")
+    print(f"   Promedio % desvíos:     {100 * np.mean(desvios_normal):.1f}%")
+    print(f"   Promedio % aterrizajes: {100 * np.mean(aterrizajes_normal):.1f}%")
+    print(f"   Promedio total aviones: {np.mean(totales_normal):.1f}")
+
+    print(f"\n Día con Tormenta (cierre 30 min en {minutos_a_hora(storm_start_fixed)}):")
+    print(f"   Promedio % desvíos:     {100 * np.mean(desvios_tormenta):.1f}%")
+    print(f"   Promedio % aterrizajes: {100 * np.mean(aterrizajes_tormenta):.1f}%")
+    print(f"   Promedio total aviones: {np.mean(totales_tormenta):.1f}")
+    print(f"   Promedio aviones afectados por cierre: {np.mean(afectados_tormenta):.1f}")
+
+    diff = 100 * (np.mean(desvios_tormenta) - np.mean(desvios_normal))
+    print("\n Impacto promedio de la tormenta:")
+    print(f"   Incremento de desvíos: {diff:.1f} puntos porcentuales")
+

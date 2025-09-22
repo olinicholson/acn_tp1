@@ -1,7 +1,4 @@
-"""
-Ejercicio 5 - Día Ventoso SIMPLIFICADO
-Interrupciones de aterrizaje (1/10) + lógica de rejoin de main.py
-"""
+# extensión del simulador original (main.py), agregando interrupciones de aterrizaje (1/10) por viento 
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -10,6 +7,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
+# clase PlaneVentoso que hereda de Plane y agrega lógica de interrupciones
 class PlaneVentoso(Plane):
     def __init__(self, id, appear_time):
         super().__init__(id, appear_time)
@@ -17,14 +15,15 @@ class PlaneVentoso(Plane):
         self.en_interrupcion = False
         
     def intentar_aterrizaje(self):
-        """10% probabilidad de interrupción"""
+        #10% probabilidad de interrupción
         if random.random() < 0.1:
             self.interrupciones += 1
             return False
         return True
 
-def simulate_windy_day(lambda_prob=0.2, total_minutes=1080):
-    """Simulación día ventoso usando lógica de main.py + interrupciones"""
+# funcion que simula un día ventoso con interrupciones
+def simulate_dia_ventoso(lambda_prob=0.2, total_minutes=1080):
+    # simulación día ventoso usando lógica de main.py + interrupciones
     planes = []
     queue = []
     rejoining = []
@@ -34,14 +33,14 @@ def simulate_windy_day(lambda_prob=0.2, total_minutes=1080):
     interrupciones_count = 0
     
     for t in range(total_minutes):
-        # 1. Aparición
+        # aparición
         if random.random() < lambda_prob:
             plane = PlaneVentoso(next_id, t)
             planes.append(plane)
             queue.append(plane)
             next_id += 1
         
-        # 2. Procesar approaching (lógica exacta de main.py)
+        # procesar approaching (igual que main.py)
         to_remove = []
         for i, plane in enumerate(queue[:]):
             if plane.status == 'approaching':
@@ -55,7 +54,7 @@ def simulate_windy_day(lambda_prob=0.2, total_minutes=1080):
                     if (curr_time_to_land - prev_time_to_land) < MIN_SEPARATION_MIN:
                         required_speed = prev.speed - 20
                         if required_speed < plane.get_min_speed() or (curr_time_to_land_nueva - prev_time_to_land) < BUFFER_MIN:
-                            # Debe bajar por debajo del mínimo O no logra buffer, va a rejoin
+                            # debe bajar por debajo del mínimo O no logra buffer, va a rejoin
                             plane.status = 'rejoin'
                             plane.rejoin_start_time = t
                             plane.rejoin_dist = plane.dist
@@ -67,20 +66,20 @@ def simulate_windy_day(lambda_prob=0.2, total_minutes=1080):
                     else:
                         plane.speed = plane.get_max_speed()
                 else:
-                    # Primer avión, no tiene anterior
+                    # primer avión, no tiene anterior
                     plane.speed = plane.get_max_speed()
         
-        # Remover aviones marcados fuera del bucle principal
+        # remover aviones marcados fuera del bucle principal
         for plane in to_remove:
             if plane in queue:
                 queue.remove(plane)
         
-        # 3. Procesar rejoining (lógica exacta de main.py)
+        # procesar rejoining (igual que main.py)
         for plane in rejoining[:]:
             # Vuela hacia atrás a 200 nudos
             plane.dist += knots_to_nm_per_min(200)
             
-            # Si sale de las 100mn sin encontrar gap, se va a Montevideo
+            # si sale de las 100mn sin encontrar gap, se va a Montevideo
             if plane.dist > 100.0:
                 plane.status = 'montevideo'
                 plane.montevideo_time = t
@@ -88,7 +87,7 @@ def simulate_windy_day(lambda_prob=0.2, total_minutes=1080):
                 montevideo_count += 1
                 continue
             
-            # Buscar gap de 10 minutos en la cola
+            # buscar gap de 10 minutos en la cola
             for j in range(1, len(queue)):
                 prev2 = queue[j-1]
                 curr2 = queue[j]
@@ -96,20 +95,20 @@ def simulate_windy_day(lambda_prob=0.2, total_minutes=1080):
                 curr2_time = t + eta_minutes(curr2.dist, curr2.speed) if curr2.status != 'landed' else curr2.landed_time
                 
                 if (curr2_time - prev2_time) >= REJOIN_GAP_MIN:
-                    # Encontró gap, puede reingresar
+                    # encontró gap, puede reingresar
                     plane.status = 'approaching'
                     plane.dist = plane.rejoin_dist
                     queue.insert(j, plane)
                     rejoining.remove(plane)
                     break
         
-        # 4. Actualizar posiciones y aterrizajes
+        # actualizar posiciones y aterrizajes
         to_remove_landed = []
         for plane in queue[:]:
             if plane.status == 'approaching':
                 plane.update_position(1)
                 
-                # Aterrizaje con interrupciones (SOLO para día ventoso)
+                # aterrizaje con interrupciones (SOLO para día ventoso)
                 if plane.dist <= 0:
                     if plane.intentar_aterrizaje():
                         plane.status = 'landed'
@@ -117,7 +116,7 @@ def simulate_windy_day(lambda_prob=0.2, total_minutes=1080):
                         to_remove_landed.append(plane)
                         landed_count += 1
                     else:
-                        # Interrupción -> rejoin
+                        # interrupción -> rejoin
                         plane.status = 'rejoin'
                         plane.rejoin_start_time = t
                         plane.rejoin_dist = 20.0
@@ -137,6 +136,7 @@ def simulate_windy_day(lambda_prob=0.2, total_minutes=1080):
     
     return planes, landed_count, montevideo_count, interrupciones_count
 
+# funcion para graficar comparacion normal vs ventoso
 def grafico_comparacion(lambdas_test=[0.1, 0.15, 0.2, 0.25, 0.3]):
     """Gráfico de líneas comparando normal vs ventoso"""
     print("📊 Generando gráfico...")
@@ -153,7 +153,7 @@ def grafico_comparacion(lambdas_test=[0.1, 0.15, 0.2, 0.25, 0.3]):
         normal_desvios.append(normal_pct)
         
         # Ventoso
-        planes_ventoso, _, montevideo_count, _ = simulate_windy_day(lam, 1080)
+        planes_ventoso, _, montevideo_count, _ = simulate_dia_ventoso(lam, 1080)
         ventoso_pct = montevideo_count / len(planes_ventoso) * 100
         ventoso_desvios.append(ventoso_pct)
     
@@ -171,6 +171,7 @@ def grafico_comparacion(lambdas_test=[0.1, 0.15, 0.2, 0.25, 0.3]):
     
     return normal_desvios, ventoso_desvios
 
+# funcion para graficar comparacion normal vs ventoso con Monte Carlo
 def grafico_comparacion_montecarlo(lambdas_test=[0.1, 0.15, 0.2, 0.25, 0.3], N=100):
     """Gráfico de líneas comparando normal vs ventoso, con Monte Carlo y barras de error."""
     print("\nMonte Carlo Día Ventoso vs Normal")
@@ -190,7 +191,7 @@ def grafico_comparacion_montecarlo(lambdas_test=[0.1, 0.15, 0.2, 0.25, 0.3], N=1
                 normal_pct = len([p for p in planes_normal if p.status == 'montevideo']) / len(planes_normal) * 100
                 desvios_normal.append(normal_pct)
             # Ventoso
-            planes_ventoso, _, montevideo_count, _ = simulate_windy_day(lam, 1080)
+            planes_ventoso, _, montevideo_count, _ = simulate_dia_ventoso(lam, 1080)
             if len(planes_ventoso) > 0:
                 ventoso_pct = montevideo_count / len(planes_ventoso) * 100
                 desvios_ventoso.append(ventoso_pct)
@@ -216,14 +217,13 @@ def grafico_comparacion_montecarlo(lambdas_test=[0.1, 0.15, 0.2, 0.25, 0.3], N=1
         print(f"λ={lam:.2f} | Normal: {normal_desvios[i]:.2f}% ± {normal_err[i]:.2f} | Ventoso: {ventoso_desvios[i]:.2f}% ± {ventoso_err[i]:.2f}")
     return normal_desvios, normal_err, ventoso_desvios, ventoso_err
 
-# Para ejecutar desde main:
 if __name__ == "__main__":
     print("🌪️ DÍA VENTOSO SIMPLIFICADO")
     print("="*30)
     
     # Comparación rápida
     for lam in [0.1, 0.2, 0.3]:
-        _, _, mont_ventoso, _ = simulate_windy_day(lam, 1080)
+        _, _, mont_ventoso, _ = simulate_dia_ventoso(lam, 1080)
         planes_normal, _ = simulate_planes(lam, 1080)
         mont_normal = len([p for p in planes_normal if p.status == 'montevideo'])
         print(f"λ={lam}: Normal {mont_normal}, Ventoso {mont_ventoso}")

@@ -1,3 +1,4 @@
+# simulador interactivo del arribo de aviones a AEP en un dia de viento
 import pygame
 import sys
 import random
@@ -9,7 +10,7 @@ from tqdm import tqdm
 import math
 import os
 
-# Clase PlaneVentoso con lógica de interrupción
+# clase PlaneVentoso con lógica de interrupción
 class PlaneVentoso(Plane):
     def __init__(self, id, appear_time):
         super().__init__(id, appear_time)

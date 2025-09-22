@@ -1,4 +1,4 @@
-# Mecanismo de simulación interactivo del tráfico aéreo usando Pygame
+# simulador interactivo del arribo de aviones a AEP
 import pygame
 import sys
 import random
