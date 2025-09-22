@@ -184,7 +184,7 @@ if __name__ == "__main__":
     # Resultados 
     print("\n Resultados comparativos (promedios de 1000 simulaciones):")
     print("-" * 70)
-    print(f"➡️ Día Normal:")
+    print(f" Día Normal:")
     print(f"   Promedio % desvíos:     {100 * np.mean(desvios_normal):.1f}%")
     print(f"   Promedio % aterrizajes: {100 * np.mean(aterrizajes_normal):.1f}%")
     print(f"   Promedio total aviones: {np.mean(totales_normal):.1f}")
