@@ -1,3 +1,59 @@
+import matplotlib.pyplot as plt
+import numpy as np
+from main import simulate_planes
+
+def montecarlo_planes_ej7(sim_func, lambda_prob, total_minutes, n_mc=1000):
+    """
+    Ejecuta n_mc simulaciones con la función sim_func y retorna una lista de listas de aviones.
+    """
+    all_planes = []
+    for _ in range(n_mc):
+        planes, _ = sim_func(lambda_prob, total_minutes)
+        all_planes.append(planes)
+    return all_planes
+
+def comparar_landing_times_mc(lambda_prob=0.15, total_minutes=1080, n_mc=1000):
+    """
+    Compara la distribución de aterrizajes por hora entre la política normal (main) y la de ejercicio7.
+    """
+    # Importar aquí para evitar dependencias circulares
+    from main import simulate_planes
+    try:
+        from ejercicio7 import simulate_planes_holding
+    except ImportError:
+        # Si ya estamos en ejercicio7.py, usar la función local
+        simulate_planes_holding = simulate_planes_holding
+
+    # Monte Carlo para política normal
+    all_planes_normal = montecarlo_planes_ej7(simulate_planes, lambda_prob, total_minutes, n_mc)
+    # Monte Carlo para política holding+fuel
+    all_planes_holding = montecarlo_planes_ej7(simulate_planes_holding, lambda_prob, total_minutes, n_mc)
+
+    def cantidad_por_hora(all_planes):
+        horas_all = []
+        for planes in all_planes:
+            landed = [p for p in planes if p.status == 'landed' and p.landed_time is not None]
+            horas = [6 + (p.landed_time // 60) for p in landed]
+            horas_all.extend(horas)
+        counts, _ = np.histogram(horas_all, bins=range(6, 25))
+        avg_counts = counts / len(all_planes) if len(all_planes) > 0 else counts
+        return avg_counts
+
+    cant_normal = cantidad_por_hora(all_planes_normal)
+    cant_holding = cantidad_por_hora(all_planes_holding)
+    horas = np.arange(6, 24)
+
+    plt.figure(figsize=(12, 6))
+    plt.bar(horas-0.15, cant_normal, width=0.3, label='Política normal (Ej1)', color='skyblue', align='center')
+    plt.bar(horas+0.15, cant_holding, width=0.3, label='Holding + Fuel (Ej7)', color='orange', align='center')
+    plt.xlabel('Hora de aterrizaje', fontsize=12)
+    plt.ylabel('Cantidad promedio de aterrizajes', fontsize=12)
+    plt.title('Comparación de cantidad promedio de aterrizajes por hora (Monte Carlo)')
+    plt.xticks(horas)
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 import numpy as np
 import sys
 import os
@@ -221,3 +277,8 @@ if __name__ == "__main__":
     if wait_times:
         print(f"\nPromedio tiempo de espera en holding: {np.mean(wait_times):.2f} min")
         print(f"Promedio tiempo extra respecto al vuelo ideal: {np.mean(extra_times):.2f} min")
+
+# Ejecutar gráfico comparativo automáticamente si se ejecuta este archivo
+if __name__ == "__main__":
+    print("Ejecutando comparación de distribución de aterrizajes por hora entre políticas...")
+    comparar_landing_times_mc(lambda_prob=0.16355, total_minutes=1080, n_mc=500)
